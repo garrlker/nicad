@@ -13,7 +13,8 @@
     "debug": "^4.1.1",
     "three": "^0.110.0",
     "three.meshline": "^1.2.0",
-    "vue": "^2.6.10"
+    "vue": "^2.6.10",
+    "vue-csg": "^0.1.1"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "^4.0.0",
@@ -22,7 +23,8 @@
     "babel-eslint": "^10.0.3",
     "eslint": "^5.16.0",
     "eslint-plugin-vue": "^5.0.0",
-    "vue-template-compiler": "^2.6.10"
+    "vue-template-compiler": "^2.6.10",
+    "worker-loader": "^2.0.0"
   },
   "eslintConfig": {
     "root": true,

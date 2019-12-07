@@ -61,7 +61,10 @@ export default {
     var ambiLight = new THREE.AmbientLight( 0x999999 ); // soft white light
     this.$scene.add( ambiLight );
 
-    this.$camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 1000 );
+    let width = window.innerWidth / 50;
+    let height = window.innerHeight / 50;
+
+    this.$camera = new THREE.OrthographicCamera( -width, width, height, -height, -1000, 10000 );
     debug("CAMERA", this.$camera);
     this.$controls = new OrbitControls( this.$camera, this.$renderer.domElement );
 
