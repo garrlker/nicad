@@ -24,25 +24,37 @@ export default {
 
     setGeometry(shape) {
       debug("Shape", shape);
-      
-      var geometry = csgToGeometry(shape);
-      var material = new THREE.MeshPhongMaterial();
-      var mesh = new THREE.Mesh( geometry, material );
+      debug("Scene", this.$scene);
 
-      this.$scene.add(mesh);
+      // Clear previous geometry
+      if(this.$mesh){
+        this.$scene.remove(this.$mesh);
+        this.$geometry.dispose();
+        this.$material.dispose();
+
+        this.$scene.remove(this.$linewireframe);
+        this.$linegeo.dispose();
+        this.$linemat.dispose();
+      }
+      
+      this.$geometry = csgToGeometry(shape);
+      this.$material = new THREE.MeshPhongMaterial({side: THREE.FrontSide});
+      this.$mesh = new THREE.Mesh( this.$geometry, this.$material );
+
+      this.$scene.add(this.$mesh);
 
       // var lineMaterial = new THREE.LineBasicMaterial({
       //   color: 0x000000
       // });
 
-      // var line = new THREE.Line( geometry, lineMaterial );
+      // var line = new THREE.Line( this.$geometry, lineMaterial );
       // this.$scene.add( line );
       // TODO: DELETE THREE MESHLINE PACKAGE, NOT INTENDED FOR WIREFRAMES
 
-      var geo = new THREE.EdgesGeometry( geometry ); // or WireframeGeometry( geometry )
-      var mat = new THREE.LineBasicMaterial( { color: 0, linewidth: 4 } );
-      var wireframe = new THREE.LineSegments( geo, mat );
-      this.$scene.add( wireframe );
+      this.$linegeo = new THREE.EdgesGeometry( this.$geometry ); // or WireframeGeometry( this.$geometry )
+      this.$linemat = new THREE.LineBasicMaterial( { color: 0, linewidth: 4 } );
+      this.$linewireframe = new THREE.LineSegments( this.$linegeo, this.$linemat );
+      this.$scene.add( this.$linewireframe );
     }
 
   },
@@ -54,9 +66,9 @@ export default {
     this.$scene = new THREE.Scene();
     this.$scene.background = new THREE.Color( 0x333333 );
 
-    var light = new THREE.PointLight( 0xffffff );
-    light.position.set( 10, 10, 10 );
-    this.$scene.add( light );
+    var light = new THREE.PointLight( 0xffffff, 0.35, 0, 2 );
+    // light.position.set( 0, 0, 0 );
+    // this.$scene.add( light );
 
     var ambiLight = new THREE.AmbientLight( 0x999999 ); // soft white light
     this.$scene.add( ambiLight );
@@ -65,6 +77,8 @@ export default {
     let height = window.innerHeight / 50;
 
     this.$camera = new THREE.OrthographicCamera( -width, width, height, -height, -1000, 10000 );
+    this.$camera.add( light );
+    this.$scene.add(this.$camera);
     debug("CAMERA", this.$camera);
     this.$controls = new OrbitControls( this.$camera, this.$renderer.domElement );
 

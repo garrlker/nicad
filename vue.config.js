@@ -5,6 +5,9 @@ module.exports = {
     resolve: {
         symlinks:false
     },
+    devServer: {
+      historyApiFallback: true
+    }
   },
   chainWebpack: config => {
     config.module

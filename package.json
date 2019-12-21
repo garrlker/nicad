@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@jscad/csg": "^0.7.0",
+    "@jscad/scad-api": "^0.5.1",
     "core-js": "^3.3.2",
     "debug": "^4.1.1",
     "three": "^0.110.0",
