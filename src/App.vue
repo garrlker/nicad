@@ -1,13 +1,13 @@
 <template>
   <div id="app">
-    <input type="number" v-model="test">
+    <input type="number" v-model.number="test">
     <viewer ref="viewer" />
     <scale @csg="setGeometry" :xform="10">
       <center :xform="[true, true, true]">
         <translate :xform="[0, 0, 1.5]">
           <union>
             <subtract>
-              <cube :size="3" :center="true"/>
+              <cube :size="test" :center="true"/>
               <sphere :r="2" :center="true"/>
             </subtract>
             <intersect>
@@ -18,9 +18,9 @@
         </translate>
       </center>
     </scale>
-    <!-- <cube>
-    </cube>
-    <cube :pos="[0.5,0.5,0.5]"/> -->
+    <!-- <cube :size="test" @csg="setGeometry">
+    </cube> -->
+    <!-- <cube :pos="[0.5,0.5,0.5]"/> -->
   </div>
 </template>
 
@@ -74,7 +74,7 @@ export default {
       arr: new Array(2),
       foo: [],
       size: 10,
-      test: 0
+      test: 3
     };
   },
   methods: {
