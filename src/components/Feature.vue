@@ -1,5 +1,5 @@
 <template>
-  <translate :xform="node.props.translate || [0,0,0]" v-on="$listeners">
+  <translate :xform="node.props.translate || [0,0,0]" v-on="$listeners" @csg="cacheCSG">
     <scale :xform="node.props.scale || [1,1,1]">
       <rotate :xform="node.props.rotate || [0,0,0]">
         <component :is="node.name" v-bind="node.props">
@@ -24,6 +24,11 @@ export default {
   },
   components: {
     ...VueCSG
+  },
+  methods:{
+    cacheCSG(csg){
+      this.$cachedCSG = csg;
+    }
   }
 };
 </script>
