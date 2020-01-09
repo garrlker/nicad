@@ -1,6 +1,7 @@
 //vue.config.js
 module.exports = {
   lintOnSave: false,
+
   configureWebpack: {
     resolve: {
         symlinks:false
@@ -9,6 +10,7 @@ module.exports = {
       historyApiFallback: true
     }
   },
+
   chainWebpack: config => {
     config.module
     .rule('worker')
@@ -16,6 +18,16 @@ module.exports = {
     .use('worker-loader')
     .loader('worker-loader')
     .end();
-  }
+  },
 
+  pluginOptions: {
+    quasar: {
+      importStrategy: 'kebab',
+      rtlSupport: false
+    }
+  },
+
+  transpileDependencies: [
+    'quasar'
+  ]
 }

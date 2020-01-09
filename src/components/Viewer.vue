@@ -1,117 +1,130 @@
 <template>
-  <div class="viewer"></div>
+  <div class="viewer" @wheel.prevent>
+    <picking :reglCtx="regl"/>
+    <slot></slot>
+  </div>
 </template>
 
 <script>
-import * as THREE from "three";
-import { TrackballControls } from "../lib/Controls";
+import wrapRegl from "regl";
+import reglCamera from "regl-camera";
 import { csgToGeometry } from "../lib/util";
-// import { setupAttributes, wireframeVertex, wireframeFragment } from "../lib/shaders/wireframe";
-const debug = require("debug")("Viewer");
+import { primitives3d } from "@jscad/scad-api";
+import Picking from "./Picking";
+
+// if(!window.regl){
+//   window.regl = wrapRegl;
+// }
 
 export default {
   name: "Viewer",
-  methods: {
-    animate() {
-      requestAnimationFrame(this.animate);
-
-      // required if controls.enableDamping or controls.autoRotate are set to true
-      this.$controls.update();
-
-      this.$renderer.render(this.$scene, this.$camera);
+  provide() {
+    return {
+      outputCSGtoParent: this.receiveChildCSG
+    };
+  },
+  props: {
+    backgroundColor: {
+      type: Array,
+      default: () => [0.66, 0.66, 0.66, 1]
     },
-
-    setGeometry(shape) {
-      debug("Shape", shape);
-      debug("Scene", this.$scene);
-
-      // Clear previous geometry
-      if (this.$mesh) {
-        this.$scene.remove(this.$mesh);
-        this.$geometry.dispose();
-        this.$material.dispose();
-
-        this.$scene.remove(this.$linewireframe);
-        this.$linegeo.dispose();
-        this.$linemat.dispose();
+    theta: {
+      type: Number,
+      default: 0
+    },
+    phi: {
+      type: Number,
+      default: 0
+    },
+  },
+  components: {
+    Picking
+  },
+  methods: {
+    createCSGDrawCall(csg) {
+      var { vertices, indices, normals, colors } = csgToGeometry(csg);
+      this.drawCSG = this.regl({
+        frag: `
+      precision mediump float;
+      uniform vec3 eye;
+      varying vec3 vnormal;
+      varying vec4 vcolor;
+      void main () {
+        gl_FragColor = vcolor * -dot(vnormal, eye) * -.75;
+      }`,
+        vert: `
+      precision mediump float;
+      uniform mat4 projection, view;
+      attribute vec3 position, normal;
+      attribute vec4 color;
+      varying vec3 vnormal;
+      varying vec4 vcolor;
+      void main () {
+        vnormal = normal;
+        vcolor = color;
+        gl_Position = projection * view * vec4(position, 1.0);
+      }`,
+        attributes: {
+          position: vertices,
+          normal: normals,
+          color: colors
+        },
+        elements: indices
+      });
+    },
+    createRegl(){
+      if(!this.regl){
+        this.regl = wrapRegl(this.$el);
       }
+    },
+    receiveChildCSG(childID, childGeometry) {
+      console.log("NiCad Viewer CSG", childGeometry);
+  
+      // Quick hack to have the camera at a good distance from the model depending on its bounding box
+      var distance = childGeometry.getBounds()[1]._y * 4;
 
-      this.$geometry = csgToGeometry(shape);
-      this.$material = new THREE.MeshPhongMaterial({ side: THREE.FrontSide });
-      this.$mesh = new THREE.Mesh(this.$geometry, this.$material);
+      this.createRegl();
 
-      this.$scene.add(this.$mesh);
+      const camera = reglCamera(this.regl, {
+        center: [0, 0, 0],
+        damping: 0,
+        distance: distance,
+        theta: this.theta,
+        phi: this.phi,
+        rotationSpeed: 1.5,
+        zoomSpeed: 2
+      });
 
-      // var lineMaterial = new THREE.LineBasicMaterial({
-      //   color: 0x000000
+      // this.regl.frame(() => {
+      //   this.regl.clear({
+      //     color: this.backgroundColor
+      //   });
+      //   camera(() => {
+      //     if (this.drawCSG) this.drawCSG();
+      //   });
       // });
 
-      // var line = new THREE.Line( this.$geometry, lineMaterial );
-      // this.$scene.add( line );
-      // TODO: DELETE THREE MESHLINE PACKAGE, NOT INTENDED FOR WIREFRAMES
-
-      this.$linegeo = new THREE.EdgesGeometry(this.$geometry); // or WireframeGeometry( this.$geometry )
-      this.$linemat = new THREE.LineBasicMaterial({ color: 0, linewidth: 4 });
-      this.$linewireframe = new THREE.LineSegments(
-        this.$linegeo,
-        this.$linemat
-      );
-      this.$scene.add(this.$linewireframe);
+      this.createCSGDrawCall(childGeometry);
     }
   },
   mounted() {
-    this.$renderer = new THREE.WebGLRenderer();
-    // this.$renderer.setSize( window.innerWidth, window.innerHeight );
-    console.log(this.$el.clientWidth, this.$el.clientHeight);
-    this.$renderer.setSize(this.$el.clientWidth, this.$el.clientHeight);
-    // document.body.appendChild( this.$renderer.domElement );
-    this.$el.appendChild(this.$renderer.domElement);
-    this.$scene = new THREE.Scene();
-    this.$scene.background = new THREE.Color(0x333333);
-
-    var light = new THREE.PointLight(0xffffff, 0.35, 0, 2);
-    // light.position.set( 0, 0, 0 );
-    // this.$scene.add( light );
-
-    var ambiLight = new THREE.AmbientLight(0x999999); // soft white light
-    this.$scene.add(ambiLight);
-
-    // let width = window.innerWidth / 50;
-    // let height = window.innerHeight / 50;
-
-    let width = this.$el.clientWidth / 50;
-    let height = this.$el.clientHeight / 50;
-
-    this.$camera = new THREE.OrthographicCamera(
-      -width,
-      width,
-      height,
-      -height,
-      -1000,
-      10000
-    );
-    this.$camera.add(light);
-    this.$scene.add(this.$camera);
-    debug("CAMERA", this.$camera);
-    this.$controls = new TrackballControls(this.$camera, this.$renderer.domElement);
-
-    //controls.update() must be called after any manual changes to the camera's transform
-    this.$camera.position.set(0, 20, 1000);
-    this.$controls.update();
-
-    // var geometry = new THREE.BoxBufferGeometry( 200, 200, 200 );
-    // var material = new THREE.MeshBasicMaterial();
-    // { color: THREE.Color(0x859ca8) }
-    // var mesh = new THREE.Mesh( geometry, material );
-    // this.$scene.add( mesh )
-
-    requestAnimationFrame(this.animate);
+    this.createRegl();
+  },
+  beforeDestroy() {
+    this.regl.destroy();
   }
 };
 </script>
 
-<style scoped>
+<style>
 .viewer {
+  min-height: 500px;
+  min-width: 500px;
   height: 100%;
+  width: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 </style>
