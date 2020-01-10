@@ -39,13 +39,12 @@
 </template>
 
 <script>
-// import Viewer from "./components/Viewer.vue";
+import Viewer from "./components/Viewer.vue";
 import Feature from "./components/Feature.vue";
 import Tree from "./components/Tree.vue";
 import * as VueCSG from "vue-csg";
 const debug = require("debug")("App");
 import { CAG, CSG } from "@jscad/csg";
-import Viewer from "./components/Viewer";
 
 // Pollute global space
 import { booleanOps } from "@jscad/scad-api";
@@ -217,7 +216,7 @@ export default {
     .left-sidebar {
       pointer-events: auto;
       grid-column: 1 / 2;
-      grid-row: 1 / 3;
+      grid-row: 1 / 2;
       border-radius: 1px;
       // border: 1px solid rgba(255, 255, 255, 0.2);
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1), 0 1px 8px rgba(0, 0, 0, 0.2);
@@ -235,11 +234,11 @@ export default {
       // border: 1px solid rgba(255, 255, 255, 0.2);
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1), 0 1px 8px rgba(0, 0, 0, 0.2);
       background-blend-mode: exclusion;
-      // background-color: rgba(255, 255, 255, 0.6);
-      background: linear-gradient(
-        rgba(255, 255, 255, 0.1),
-        rgba(209, 209, 209, 1)
-      );
+      background-color: rgba(255, 255, 255, 0.6);
+      // background: linear-gradient(
+      //   rgba(255, 255, 255, 0.1),
+      //   rgba(209, 209, 209, 1)
+      // );
       backdrop-filter: blur(20px) saturate(125%);
 
       // Disabling the hover for now, it's annoying
@@ -253,13 +252,14 @@ export default {
     .bottom-toolbar {
       z-index: 2;
       pointer-events: auto;
-      grid-column: 2 / 4;
+      grid-column: 1 / 4;
       grid-row: 2 / 3;
       // border: 1px solid rgba(255, 255, 255, 0.2);
       // box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1), 0 1px 8px rgba(0, 0, 0, 0.2);
       // background-blend-mode: exclusion;
       border: 1px black;
-      background-color: rgba(209, 209, 209, 1);
+      // background-color: rgba(209, 209, 209, 1);
+      background-color: #fe9801;
       backdrop-filter: blur(10px);
     }
 

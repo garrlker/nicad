@@ -1,6 +1,6 @@
 <template>
   <div class="viewer" @wheel.prevent>
-    <picking :reglCtx="regl"/>
+    <picking :reglCtx="regl" />
     <slot></slot>
   </div>
 </template>
@@ -12,7 +12,10 @@ import { csgToGeometry } from "../lib/util";
 import { primitives3d } from "@jscad/scad-api";
 import Picking from "./Picking";
 // import { flatShadingVert, flatShadingFrag } from "../lib/shaders/flatShading";
-import { phongShadingVert, phongShadingFrag } from "../lib/shaders/phongShading";
+import {
+  phongShadingVert,
+  phongShadingFrag
+} from "../lib/shaders/phongShading";
 
 // if(!window.regl){
 //   window.regl = wrapRegl;
@@ -37,7 +40,7 @@ export default {
     phi: {
       type: Number,
       default: 0
-    },
+    }
   },
   components: {
     Picking
@@ -53,17 +56,21 @@ export default {
           normal: normals,
           color: colors
         },
-        elements: indices
+        elements: indices,
+        cull: {
+          enable: true,
+          face: "back"
+        }
       });
     },
-    createRegl(){
-      if(!this.regl){
+    createRegl() {
+      if (!this.regl) {
         this.regl = wrapRegl(this.$el);
       }
     },
     receiveChildCSG(childID, childGeometry) {
       console.log("NiCad Viewer CSG", childGeometry);
-  
+
       // Quick hack to have the camera at a good distance from the model depending on its bounding box
       var distance = childGeometry.getBounds()[1]._y * 4;
 
