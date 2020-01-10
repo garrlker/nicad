@@ -18,7 +18,10 @@ export default {
   },
   methods: {
     createFBO(regl) {
-      this.$fbo = regl.framebuffer();
+      this.$fbo = regl.framebuffer({
+        width: 960,
+        height: 540
+      });
 
       var drawRed = regl({
         // In a draw call, we can pass the shader source code to regl
@@ -79,10 +82,16 @@ export default {
       drawRed();
       drawFBO();
 
+      regl.frame(() => {
+        drawFBO();
+      })
+
       console.log("FBO", regl.read({
         framebuffer: this.$fbo,
-        x: 300,
-        y: 0
+        x: 480,
+        y: 270,
+        width: 1,
+        height: 1,
       }));
     }
   }

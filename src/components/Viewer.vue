@@ -11,6 +11,8 @@ import reglCamera from "regl-camera";
 import { csgToGeometry } from "../lib/util";
 import { primitives3d } from "@jscad/scad-api";
 import Picking from "./Picking";
+// import { flatShadingVert, flatShadingFrag } from "../lib/shaders/flatShading";
+import { phongShadingVert, phongShadingFrag } from "../lib/shaders/phongShading";
 
 // if(!window.regl){
 //   window.regl = wrapRegl;
@@ -44,26 +46,8 @@ export default {
     createCSGDrawCall(csg) {
       var { vertices, indices, normals, colors } = csgToGeometry(csg);
       this.drawCSG = this.regl({
-        frag: `
-      precision mediump float;
-      uniform vec3 eye;
-      varying vec3 vnormal;
-      varying vec4 vcolor;
-      void main () {
-        gl_FragColor = vcolor * -dot(vnormal, eye) * -.75;
-      }`,
-        vert: `
-      precision mediump float;
-      uniform mat4 projection, view;
-      attribute vec3 position, normal;
-      attribute vec4 color;
-      varying vec3 vnormal;
-      varying vec4 vcolor;
-      void main () {
-        vnormal = normal;
-        vcolor = color;
-        gl_Position = projection * view * vec4(position, 1.0);
-      }`,
+        frag: phongShadingFrag,
+        vert: phongShadingVert,
         attributes: {
           position: vertices,
           normal: normals,
@@ -95,14 +79,14 @@ export default {
         zoomSpeed: 2
       });
 
-      // this.regl.frame(() => {
-      //   this.regl.clear({
-      //     color: this.backgroundColor
-      //   });
-      //   camera(() => {
-      //     if (this.drawCSG) this.drawCSG();
-      //   });
-      // });
+      this.regl.frame(() => {
+        this.regl.clear({
+          color: this.backgroundColor
+        });
+        camera(() => {
+          if (this.drawCSG) this.drawCSG();
+        });
+      });
 
       this.createCSGDrawCall(childGeometry);
     }

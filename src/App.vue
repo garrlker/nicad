@@ -223,7 +223,8 @@ export default {
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1), 0 1px 8px rgba(0, 0, 0, 0.2);
       background-blend-mode: exclusion;
       background-color: rgba(255, 255, 255, 0.6);
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(20px) saturate(125%);
+      transition: ease 0.2s;
     }
 
     .right-sidebar {
@@ -239,13 +240,14 @@ export default {
         rgba(255, 255, 255, 0.1),
         rgba(209, 209, 209, 1)
       );
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(20px) saturate(125%);
 
       // Disabling the hover for now, it's annoying
       // This probably means it isn't a good idea
       // transform: translateX(75%);
       // -webkit-transform: translateX(75%);
       // transition: transform 0.2s ease;
+      transition: ease 0.2s;
     }
 
     .bottom-toolbar {
