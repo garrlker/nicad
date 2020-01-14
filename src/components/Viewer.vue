@@ -1,5 +1,5 @@
 <template>
-  <div class="viewer" @wheel.prevent>
+  <div class="viewer" @wheel.prevent @click="rotate">
     <picking :reglCtx="regl" />
     <slot></slot>
   </div>
@@ -7,15 +7,15 @@
 
 <script>
 import wrapRegl from "regl";
-import reglCamera from "regl-camera";
-import { csgToGeometry } from "../lib/util";
+import reglCamera from "../js/camera";
+import { csgToGeometry } from "../js/util";
 import { primitives3d } from "@jscad/scad-api";
 import Picking from "./Picking";
-// import { flatShadingVert, flatShadingFrag } from "../lib/shaders/flatShading";
+// import { flatShadingVert, flatShadingFrag } from "../js/shaders/flatShading";
 import {
   phongShadingVert,
   phongShadingFrag
-} from "../lib/shaders/phongShading";
+} from "../js/shaders/phongShading";
 
 // if(!window.regl){
 //   window.regl = wrapRegl;
@@ -66,36 +66,31 @@ export default {
     createRegl() {
       if (!this.regl) {
         this.regl = wrapRegl(this.$el);
+
+      this.camera = reglCamera(this.regl, {});
+
+      this.regl.frame(() => {
+        this.regl.clear({
+          color: this.backgroundColor
+        });
+        this.camera(() => {
+          if (this.drawCSG) this.drawCSG();
+        });
+      });
       }
     },
     receiveChildCSG(childID, childGeometry) {
       console.log("NiCad Viewer CSG", childGeometry);
 
       // Quick hack to have the camera at a good distance from the model depending on its bounding box
-      var distance = childGeometry.getBounds()[1]._y * 4;
+      // var distance = childGeometry.getBounds()[1]._y * 4;
 
       this.createRegl();
-
-      const camera = reglCamera(this.regl, {
-        center: [0, 0, 0],
-        damping: 0,
-        distance: distance,
-        theta: this.theta,
-        phi: this.phi,
-        rotationSpeed: 1.5,
-        zoomSpeed: 2
-      });
-
-      this.regl.frame(() => {
-        this.regl.clear({
-          color: this.backgroundColor
-        });
-        camera(() => {
-          if (this.drawCSG) this.drawCSG();
-        });
-      });
-
       this.createCSGDrawCall(childGeometry);
+    },
+    rotate(){
+      // console.log("rot");
+      // this.camera.rot();
     }
   },
   mounted() {

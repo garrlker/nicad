@@ -45,7 +45,10 @@ import Tree from "./components/Tree.vue";
 import * as VueCSG from "vue-csg";
 const debug = require("debug")("App");
 import { CAG, CSG } from "@jscad/csg";
-
+import { init } from 'jscad-utils';
+var newCSG = init["default"](CSG);
+console.log("bla", CSG);
+// console.log("BLA", bla);
 // Pollute global space
 import { booleanOps } from "@jscad/scad-api";
 import { primitives3d } from "@jscad/scad-api";
