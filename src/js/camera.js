@@ -1,31 +1,12 @@
 var mouseChange = require('mouse-change')
 var mouseWheel = require('mouse-wheel')
+import Hammer from "hammerjs";
 
 import {
   mat4,
   vec3,
   quat
 } from "gl-matrix";
-
-var {
-  identity,
-  multiply,
-  perspective,
-  ortho,
-  fromRotation,
-  lookAt
-} = mat4;
-
-var {
-  add,
-  copy,
-  cross,
-  scale,
-  normalize,
-  rotateX,
-  rotateY,
-  transformQuat
-} = vec3;
 
 var {
   setAxisAngle
@@ -36,19 +17,21 @@ function createCamera(regl, props_) {
   var props = props_ || {}
   var eye = [0, 0, 10];
   var rotationQuat = [0, 0, 0, 0];  
+  var modelCenter = [0, 0, 0] //TODO: Models can have non 0,0,0 centers, this is hardcoded for now. Should be prop in future
 
-  // Camera Setting
-  var zoomInScale = 0.8;
+  // Camera Settings
+  var zoomScale = 0.8;
 
   // Internal
   var prevX, prevY;
+  var touchPrevX = 0, touchPrevY = 0;
   var right = new Float32Array(3);
   var panUp = new Float32Array(3);
 
   var cameraState = {
-    view: identity(new Float32Array(16)),
-    projection: identity(new Float32Array(16)),
-    center: new Float32Array(props.center || 3),
+    view: mat4.identity(new Float32Array(16)),
+    projection: mat4.identity(new Float32Array(16)),
+    target: new Float32Array(props.target || 3),
     eye: new Float32Array(eye),
     up: new Float32Array(props.up || [0, 1, 0]),
     right: new Float32Array([1, 0, 0]),
@@ -74,50 +57,20 @@ function createCamera(regl, props_) {
     return canvas ? canvas.offsetHeight : window.innerHeight
   }
 
+  /* Mouse Handling */
   mouseChange(canvas, function (buttons, x, y) {
-    // Rotate
     if (buttons & 1) {
       var dx = (x - prevX) / getWidth()
       var dy = (y - prevY) / getHeight()
 
-      if(dx !== 0){
-        setAxisAngle(rotationQuat, cameraState.up, -dx * 5);
-        transformQuat(cameraState.eye, cameraState.eye, rotationQuat);
-        transformQuat(cameraState.right, cameraState.right, rotationQuat);
-      }
-
-      if(dy !== 0){
-        setAxisAngle(rotationQuat, cameraState.right, -dy * 5);
-        transformQuat(cameraState.eye, cameraState.eye, rotationQuat);
-        transformQuat(cameraState.up, cameraState.up, rotationQuat);
-      }
+      rotateCamera(dx, dy);
     }
 
-    // Pan
     if (buttons & 4) {
       var dx = (x - prevX) / getWidth()
       var dy = (y - prevY) / getHeight()
 
-      if(dx !== 0){
-        let normalEye = new Float32Array(3);
-        normalize(normalEye, cameraState.eye);
-        cross(right, normalEye, cameraState.up);
-        scale(right, right, dx * cameraState.frustumWidth );
-        add(cameraState.eye, cameraState.eye, right);
-        add(cameraState.center, cameraState.center, right);
-      }
-
-      if(dy !== 0){
-        let normalEye = new Float32Array(3);
-        normalize(normalEye, cameraState.eye);
-
-        copy(panUp, cameraState.up);
-        scale(panUp, panUp, dy * cameraState.frustumHeight);
-        console.log(panUp);
-
-        add(cameraState.eye, cameraState.eye, panUp);
-        add(cameraState.center, cameraState.center, panUp);
-      }
+      panCamera(dx, dy);
     }
 
     prevX = x
@@ -125,22 +78,90 @@ function createCamera(regl, props_) {
   })
 
   mouseWheel(canvas, function (dx, dy) {
+    zoomCamera(dy);
+  }, true)
+
+  /* Touch Handling */
+  var hammer = Hammer(canvas, {});
+  hammer.on('pan', function(ev) {
+    // console.log(ev);
+    if(ev.pointerType === "mouse"){
+      return;
+    }
+
+    var dx = (ev.deltaX - touchPrevX) / getWidth();
+    var dy = (ev.deltaY - touchPrevY) / getHeight();
+
+    rotateCamera(dx, dy);
+    // console.log("Touch Deltas", dx, dy);
+    touchPrevX = ev.deltaX;
+    touchPrevY = ev.deltaY;
+  });
+
+
+  /* Camera Functions */
+  function rotateCamera(xDelta, yDelta){
+    let difference = [0, 0, 0];
+    vec3.sub(difference, modelCenter, cameraState.target);
+    vec3.add(cameraState.eye, cameraState.eye, difference);
+
+    if(xDelta !== 0){
+      setAxisAngle(rotationQuat, cameraState.up, -xDelta * 5);
+      vec3.transformQuat(cameraState.eye, cameraState.eye, rotationQuat);
+      vec3.transformQuat(cameraState.right, cameraState.right, rotationQuat);
+      vec3.transformQuat(difference, difference, rotationQuat);
+    }
+
+    if(yDelta !== 0){
+      setAxisAngle(rotationQuat, cameraState.right, -yDelta * 5);
+      vec3.transformQuat(cameraState.eye, cameraState.eye, rotationQuat);
+      vec3.transformQuat(cameraState.up, cameraState.up, rotationQuat);
+      vec3.transformQuat(difference, difference, rotationQuat);
+    }
+
+    vec3.sub(cameraState.eye, cameraState.eye, difference);
+    console.log(cameraState.eye);
+  }
+
+  function panCamera(xDelta, yDelta){
+    if(xDelta !== 0){
+      let normalEye = new Float32Array(3);
+      vec3.normalize(normalEye, cameraState.eye);
+      vec3.cross(right, normalEye, cameraState.up);
+      vec3.scale(right, right, xDelta * cameraState.frustumWidth );
+      vec3.add(cameraState.eye, cameraState.eye, right);
+      vec3.add(cameraState.target, cameraState.target, right);
+    }
+
+    if(yDelta !== 0){
+      let normalEye = new Float32Array(3);
+      vec3.normalize(normalEye, cameraState.eye);
+
+      vec3.copy(panUp, cameraState.up);
+      vec3.scale(panUp, panUp, yDelta * cameraState.frustumHeight);
+
+      vec3.add(cameraState.eye, cameraState.eye, panUp);
+      vec3.add(cameraState.target, cameraState.target, panUp);
+    }
+  }
+
+  function zoomCamera(yDelta){
     // Perspective
-    // if (dy < 0) {
-    //   scale(cameraState.eye, cameraState.eye, zoomInScale);
+    // if (yDelta < 0) {
+    //   vec3.scale(cameraState.eye, cameraState.eye, zoomScale);
     // } else {
-    //   scale(cameraState.eye, cameraState.eye, 1 / zoomInScale);
+    //   vec3.scale(cameraState.eye, cameraState.eye, 1 / zoomScale);
     // }
 
     // Orthographic
-    if (dy < 0) {
-      cameraState.frustumWidth *= zoomInScale;
-      cameraState.frustumHeight *= zoomInScale;
+    if (yDelta < 0) {
+      cameraState.frustumWidth *= zoomScale;
+      cameraState.frustumHeight *= zoomScale;
     } else {
-      cameraState.frustumWidth *= 1 / zoomInScale;
-      cameraState.frustumHeight *= 1 / zoomInScale;
+      cameraState.frustumWidth *= 1 / zoomScale;
+      cameraState.frustumHeight *= 1 / zoomScale;
     }
-  }, true)
+  }
 
   /*        perspective(cameraState.projection,
           0.785,
@@ -155,7 +176,7 @@ function createCamera(regl, props_) {
         return cameraState.dirty;
       },
       projection: function (context) {
-        ortho(
+        mat4.ortho(
           cameraState.projection,
           -( cameraState.frustumWidth / 2),
           ( cameraState.frustumWidth / 2),
@@ -180,7 +201,7 @@ function createCamera(regl, props_) {
       props = {}
     }
 
-    lookAt(cameraState.view, cameraState.eye, cameraState.center, cameraState.up)
+    mat4.lookAt(cameraState.view, cameraState.eye, cameraState.target, cameraState.up)
 
     // updateCamera(props)
     injectContext(block)
