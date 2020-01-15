@@ -83,6 +83,20 @@ function createCamera(regl, props_) {
 
   /* Touch Handling */
   var hammer = Hammer(canvas, {});
+
+  hammer.on('panstart', function(ev) {
+    if(ev.pointerType === "mouse"){
+      return;
+    }
+
+    var dx = (ev.deltaX - touchPrevX) / getWidth();
+    var dy = (ev.deltaY - touchPrevY) / getHeight();
+
+    touchPrevX = ev.deltaX;
+    touchPrevY = ev.deltaY;
+    console.log('panstart', touchPrevX, touchPrevY);
+  });
+
   hammer.on('pan', function(ev) {
     // console.log(ev);
     if(ev.pointerType === "mouse"){
@@ -96,14 +110,14 @@ function createCamera(regl, props_) {
     // console.log("Touch Deltas", dx, dy);
     touchPrevX = ev.deltaX;
     touchPrevY = ev.deltaY;
+    console.log("pan", touchPrevX, touchPrevY);
   });
 
 
   /* Camera Functions */
   function rotateCamera(xDelta, yDelta){
     let difference = [0, 0, 0];
-    vec3.sub(difference, modelCenter, cameraState.target);
-    vec3.add(cameraState.eye, cameraState.eye, difference);
+    vec3.sub(difference, cameraState.target, modelCenter);
 
     if(xDelta !== 0){
       setAxisAngle(rotationQuat, cameraState.up, -xDelta * 5);
@@ -119,8 +133,8 @@ function createCamera(regl, props_) {
       vec3.transformQuat(difference, difference, rotationQuat);
     }
 
-    vec3.sub(cameraState.eye, cameraState.eye, difference);
-    console.log(cameraState.eye);
+    vec3.add(difference, difference, modelCenter)
+    vec3.copy(cameraState.target, difference);
   }
 
   function panCamera(xDelta, yDelta){

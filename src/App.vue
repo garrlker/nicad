@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <viewer ref="viewer">
-      <feature :node="tree"/>
+      <feature :node="tree" />
     </viewer>
     <div class="interface">
       <div class="left-sidebar">
@@ -13,11 +13,11 @@
         <q-btn color="primary" class="full-width" @click="create('intersect')">Intersection</q-btn>
         <q-btn color="primary" class="full-width" @click="deleteNode">Delete</q-btn>
         <q-badge color="red">X: {{translateX}}</q-badge>
-        <q-slider v-model="translateX" :min="-10" :max="10" color="red" @change="setTranslate"/>
+        <q-slider v-model="translateX" :min="-10" :max="10" color="red" @change="setTranslate" />
         <q-badge color="green">Y: {{translateY}}</q-badge>
-        <q-slider v-model="translateY" :min="-10" :max="10" color="green" @change="setTranslate"/>
+        <q-slider v-model="translateY" :min="-10" :max="10" color="green" @change="setTranslate" />
         <q-badge color="blue">Z: {{translateZ}}</q-badge>
-        <q-slider v-model="translateZ" :min="-10" :max="10" color="blue" @change="setTranslate"/>
+        <q-slider v-model="translateZ" :min="-10" :max="10" color="blue" @change="setTranslate" />
       </div>
       <div class="right-sidebar">
         <q-tree
@@ -45,7 +45,7 @@ import Tree from "./components/Tree.vue";
 import * as VueCSG from "vue-csg";
 const debug = require("debug")("App");
 import { CAG, CSG } from "@jscad/csg";
-import { init } from 'jscad-utils';
+import { init } from "jscad-utils";
 var newCSG = init["default"](CSG);
 console.log("bla", CSG);
 // console.log("BLA", bla);
@@ -161,10 +161,8 @@ export default {
       // TODO: deleteNode sets a delete flag prop on the selected node
       // When the feature realizes it has that prop, it emits an event to it's parent feature
       // Telling it to delete it
-
       // I don't like this pattern, its outside the scope of what a feature should do imo
       // But I'm not sure how else I can do it without direct access to the parent object
-
       // this.selectedNode = undefined;
       // this.$delete(this.selectedNode, "name");
       // this.$delete(this.selectedNode, "props");
@@ -186,7 +184,11 @@ export default {
         this.selectedNode.props.translate.push(0);
       }
       // this.$set(this.selectedNode.props.translate, 0, value);
-      this.$set(this.selectedNode.props.translate, [ this.translateX, this.translateY, this.translateX ]);
+      this.$set(this.selectedNode.props.translate, [
+        this.translateX,
+        this.translateY,
+        this.translateX
+      ]);
     }
   },
   mounted() {
