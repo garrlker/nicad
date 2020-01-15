@@ -11,15 +11,10 @@ import reglCamera from "../js/camera";
 import { csgToGeometry } from "../js/util";
 import { primitives3d } from "@jscad/scad-api";
 import Picking from "./Picking";
-// import { flatShadingVert, flatShadingFrag } from "../js/shaders/flatShading";
 import {
   phongShadingVert,
   phongShadingFrag
 } from "../js/shaders/phongShading";
-
-// if(!window.regl){
-//   window.regl = wrapRegl;
-// }
 
 export default {
   name: "Viewer",
