@@ -1,6 +1,6 @@
 <template>
-  <div class="viewer" @wheel.prevent @click="rotate">
-    <picking :reglCtx="regl" />
+  <div class="viewer" @wheel.prevent>
+    <!-- <picking :reglCtx="regl" /> -->
     <slot></slot>
   </div>
 </template>
@@ -11,44 +11,44 @@ import reglCamera from "../js/camera";
 import { csgToGeometry } from "../js/util";
 import { primitives3d } from "@jscad/scad-api";
 import Picking from "./Picking";
-// import { flatShadingVert, flatShadingFrag } from "../js/shaders/flatShading";
-import {
-  phongShadingVert,
-  phongShadingFrag
-} from "../js/shaders/phongShading";
-
-// if(!window.regl){
-//   window.regl = wrapRegl;
-// }
+import { phongShadingVert, phongShadingFrag } from "../js/shaders/phongShading";
 
 export default {
   name: "Viewer",
-  provide() {
-    return {
-      outputCSGtoParent: this.receiveChildCSG
-    };
-  },
   props: {
     backgroundColor: {
       type: Array,
       default: () => [0.66, 0.66, 0.66, 1]
     },
-    theta: {
-      type: Number,
-      default: 0
-    },
-    phi: {
-      type: Number,
-      default: 0
+    scene: {
+      type: Array,
+      default: () => []
     }
   },
   components: {
     Picking
   },
+  watch: {
+    scene(nodes) {
+      console.log("SCENE UPDATED", nodes);
+      this.drawCSG = [];
+
+      nodes.forEach(node => {
+        if (node.geometry){
+          this.drawCSG.push(this.parseCSG(node.geometry));
+        }
+      });
+
+
+    }
+  },
   methods: {
-    createCSGDrawCall(csg) {
+    parseCSG(csg) {
       var { vertices, indices, normals, colors } = csgToGeometry(csg);
-      this.drawCSG = this.regl({
+
+      return this.regl({
+        primitive: "triangles",
+        count: vertices.length,
         frag: phongShadingFrag,
         vert: phongShadingVert,
         attributes: {
@@ -56,7 +56,6 @@ export default {
           normal: normals,
           color: colors
         },
-        elements: indices,
         cull: {
           enable: true,
           face: "back"
@@ -67,17 +66,19 @@ export default {
       if (!this.regl) {
         this.regl = wrapRegl(this.$el);
 
-      this.camera = reglCamera(this.regl, {});
+        this.camera = reglCamera(this.regl, {});
 
-      this.regl.frame(() => {
-        this.regl.clear({
-          color: this.backgroundColor
+        this.regl.frame(() => {
+          this.regl.clear({
+            color: this.backgroundColor
+          });
+          this.camera(() => {
+            if (this.drawCSG.length > 0) this.drawCSG.forEach(dc => dc());
+            if (this.previewDC.length > 0) this.previewDC.forEach(dc => dc());
+          });
         });
-        this.camera(() => {
-          if (this.drawCSG) this.drawCSG();
-        });
-      });
       }
+      console.log("REGL", this.regl);
     },
     receiveChildCSG(childID, childGeometry) {
       console.log("NiCad Viewer CSG", childGeometry);
@@ -86,14 +87,12 @@ export default {
       // var distance = childGeometry.getBounds()[1]._y * 4;
 
       this.createRegl();
-      this.createCSGDrawCall(childGeometry);
-    },
-    rotate(){
-      // console.log("rot");
-      // this.camera.rot();
+      this.parseCSG(childGeometry);
     }
   },
   mounted() {
+    this.drawCSG = [];
+    this.previewDC = [];
     this.createRegl();
   },
   beforeDestroy() {
