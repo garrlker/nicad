@@ -12,6 +12,7 @@ import { csgToGeometry } from "../js/util";
 import { primitives3d } from "@jscad/scad-api";
 import Picking from "./Picking";
 import { phongShadingVert, phongShadingFrag } from "../js/shaders/phongShading";
+import { flatShadingVert, flatShadingFrag } from "../js/shaders/flatShading";
 
 export default {
   name: "Viewer",
@@ -23,38 +24,73 @@ export default {
     scene: {
       type: Array,
       default: () => []
+    },
+    preview: {
+      type: Array,
+      default: () => []
     }
   },
   components: {
     Picking
   },
   watch: {
+    preview(geometries) {
+      console.log("Preview UPDATED", geometries);
+      this.previewDC = [];
+
+      geometries.forEach(geometry => {
+        if (geometry) {
+          this.previewDC.push(
+            this.parsePreview(geometry)
+          );
+        }
+      });
+    },
     scene(nodes) {
       console.log("SCENE UPDATED", nodes);
       this.drawCSG = [];
 
       nodes.forEach(node => {
-        if (node.geometry){
+        if (node.geometry) {
           this.drawCSG.push(this.parseCSG(node.geometry));
         }
       });
-
-
     }
   },
   methods: {
-    parseCSG(csg) {
+    parseCSG(csg, vert = phongShadingVert, frag = phongShadingFrag) {
       var { vertices, indices, normals, colors } = csgToGeometry(csg);
 
       return this.regl({
         primitive: "triangles",
         count: vertices.length,
-        frag: phongShadingFrag,
-        vert: phongShadingVert,
+        vert: vert,
+        frag: frag,
         attributes: {
           position: vertices,
           normal: normals,
           color: colors
+        },
+        cull: {
+          enable: true,
+          face: "back"
+        }
+      });
+    },
+    parsePreview(csg, vert = flatShadingVert, frag = flatShadingFrag) {
+      var { vertices, indices, normals, colors } = csgToGeometry(csg);
+
+      return this.regl({
+        primitive: "triangles",
+        count: vertices.length,
+        vert: vert,
+        frag: frag,
+        attributes: {
+          position: vertices,
+          normal: normals,
+        },
+        uniforms: {
+          color: [0.99, 0.59, 0.0, 1.0]
         },
         cull: {
           enable: true,

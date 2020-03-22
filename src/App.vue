@@ -2,11 +2,14 @@
   <div id="app">
     <div class="interface">
       <div class="left-sidebar">
-        <cube
-          :mode="tempFeature ? 'update' : 'new'"
-          @feature="createFeature"
+        <component
+          :is="currentCommand"
+          :mode="selected != null ? 'update' : 'new'"
+          @feature:create="createFeature"
           @feature:update="updateFeature"
+          @feature:preview="previewFeature"
           :feature="tempFeature ? tempFeature.geometry : undefined"
+          @setCommand="setCommand"
         />
       </div>
       <div class="right-sidebar">
@@ -26,56 +29,60 @@
       </div>
       <div class="bottom-toolbar"></div>
     </div>
-    <viewer ref="viewer" :scene="scene"> </viewer>
+    <viewer ref="viewer" :scene="scene" :preview="preview"> </viewer>
   </div>
 </template>
 
 <script>
 import Viewer from "./components/Viewer.vue";
-import Cube from "./components/commands/Cube";
+import * as CommandUI from "./components/commands";
 const debug = require("debug")("App");
 
 export default {
   name: "app",
   components: {
     Viewer,
-    Cube
+    ...CommandUI
   },
   data() {
     return {
-      selected: [],
+      currentCommand: "Menu",
+      selected: null,
       ticked: [],
       expanded: [],
+      preview: [],
       scene: [],
       tempFeature: undefined
     };
   },
   methods: {
-    create(name) {
-      // if (!this.selectedNode.children) {
-      //   this.selectedNode.children = [];
-      // }
-      // this.selectedNode.children.push({
-      //   name: name,
-      //   key: String(this.newId),
-      //   props: {},
-      //   children: []
-      // });
-      // this.newId += 1;
-    },
     createFeature(feature) {
       feature.key = this.scene.length;
       this.scene.push(feature);
+      this.setCommand("Menu");
+      this.selected = null;
+      this.tempFeature = undefined;
     },
-    handleSelected(selected) {
-      console.log("handleSelected", selected);
-      this.tempFeature = this.scene[selected];
+    previewFeature(feature) {
+      this.preview = [feature];
     },
     updateFeature(feature) {
-      console.log("UPDATE FEATURE", feature);
-      // this.scene[this.selected].geometry = feature;
-      this.$set(this.scene[this.selected], 'geometry', feature);
+      this.$set(this.scene[this.selected], "geometry", feature);
       this.$set(this.scene, this.selected, this.scene[this.selected]);
+      this.setCommand("Menu");
+      this.selected = null;
+      this.tempFeature = undefined;
+    },
+    handleSelected(selected) {
+      if (this.currentCommand !== "Menu") {
+        this.selected = null;
+      } else {
+        this.tempFeature = this.scene[selected];
+        this.setCommand(this.tempFeature.type);
+      }
+    },
+    setCommand(command) {
+      this.currentCommand = command;
     }
   },
   mounted() {

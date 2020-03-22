@@ -1,24 +1,37 @@
 <template>
   <div>
     <div class="q-pa-md q-gutter-sm">
-      <q-input v-model.number="width" type="number" filled label="Width" />
-      <q-input v-model.number="height" type="number" filled label="Height" />
-      <q-input v-model.number="depth" type="number" filled label="Depth" />
-      <q-badge color="red">X: {{ position[0] }}</q-badge>
+      <h6 class="text-h6 text-center"> {{ mode === 'new' ? 'Create Cube' : 'Edit Cube' }}</h6>
 
-      <q-btn
-        v-if="mode === 'new'"
-        align="right"
-        color="primary"
-        label="Create"
-        @click="create([width, height, depth], position)"
+      <q-input
+        v-model.number="dimensions[0]"
+        type="number"
+        filled
+        label="Width"
+      />
+      <q-input
+        v-model.number="dimensions[1]"
+        type="number"
+        filled
+        label="Height"
+      />
+      <q-input
+        v-model.number="dimensions[2]"
+        type="number"
+        filled
+        label="Depth"
       />
       <q-btn
-        v-else
+        align="right"
+        color="warning"
+        label="Cancel"
+        @click="$emit('setCommand', 'Menu')"
+      />
+      <q-btn
         align="right"
         color="primary"
-        label="Update"
-        @click="update([width, height, depth], position)"
+        :label="mode === 'new' ? 'Create' : 'Update'"
+        @click="mode === 'new' ? create(dimensions) : update(dimensions)"
       />
     </div>
   </div>
@@ -42,18 +55,22 @@ export default {
   },
   data() {
     return {
-      width: 10,
-      height: 10,
-      depth: 10,
+      dimensions: [10, 10, 10],
       position: [0, 0, 0]
     };
   },
+  watch: {
+    dimensions(newDims) {
+      this.preview(newDims);
+    }
+  },
   methods: {
-    create(size, position) {
+    create(dimensions) {
       console.log("create Cube - Starting");
       let geometry = CSG.cube({
-        radius: size
-      }).translate(position);
+        radius: dimensions
+      });
+
       let feature = {
         name: "Cube",
         children: [],
@@ -61,27 +78,28 @@ export default {
         type: "Cube"
       };
 
-      this.$emit("feature", feature);
-      console.log("create Cube - Output", feature, geometry.getBounds());
+      this.$emit("feature:create", feature);
+      console.log("create Cube - Output", feature);
     },
-    translate(position) {
-      if (this.mode === "new") return;
-      console.log(this.feature);
-      if (this.feature) {
-        console.log(this.feature.translate(position));
-        this.$emit("feature:update", this.feature.translate(position));
-      }
-    },
-    update(size, position) {
+    preview(dimensions) {
       let geometry = CSG.cube({
-        radius: size
-      }).translate(position);
+        radius: dimensions
+      });
+
+      this.$emit("feature:preview", geometry);
+    },
+    update(dimensions) {
+      let geometry = CSG.cube({
+        radius: dimensions
+      });
 
       this.$emit("feature:update", geometry);
+      this.$emit("feature:preview", undefined);
     }
   },
   mounted() {
     console.log("Cube Mounted");
+    this.preview(this.dimensions);
   }
 };
 </script>

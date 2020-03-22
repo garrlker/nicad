@@ -1,6 +1,7 @@
 <template>
   <div>
     <!-- From Cube.vue, will be used for translate -->
+    <q-badge color="red">X: {{ position[0] }}</q-badge>
     <q-slider
       v-model="position[0]"
       :min="-10"
@@ -56,6 +57,14 @@ export default {
 
       this.$emit("feature", feature);
       console.log("create - Output", feature);
+    },
+    translate(position) {
+      if (this.mode === "new") return;
+      console.log(this.feature);
+      if (this.feature) {
+        console.log(this.feature.translate(position));
+        this.$emit("feature:update", this.feature.translate(position));
+      }
     },
     update(size, position) {
       let geometry;
