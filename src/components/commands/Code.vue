@@ -37,7 +37,7 @@ export default {
   },
   data() {
     return {
-      code: ""
+      code: `function main(){\nreturn sphere(2);\n}`
     };
   },
   watch: {
@@ -47,7 +47,7 @@ export default {
   },
   methods: {
     async compileCode(code){
-      var csg = await compile(code);
+      var csg = await compile(code, 20);
       console.log("CSG Generated", csg);
       return csg;
     },

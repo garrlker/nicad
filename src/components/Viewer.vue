@@ -40,9 +40,7 @@ export default {
 
       geometries.forEach(geometry => {
         if (geometry) {
-          this.previewDC.push(
-            this.parsePreview(geometry)
-          );
+          this.previewDC.push(this.parsePreview(geometry));
         }
       });
     },
@@ -87,7 +85,7 @@ export default {
         frag: frag,
         attributes: {
           position: vertices,
-          normal: normals,
+          normal: normals
         },
         uniforms: {
           color: [0.99, 0.59, 0.0, 1.0]
@@ -95,7 +93,24 @@ export default {
         cull: {
           enable: true,
           face: "back"
-        }
+        },
+        depth: {
+          enable: false
+        },
+        blend: {
+          enable: true,
+          func: {
+            srcRGB: "src alpha",
+            srcAlpha: 0,
+            dstRGB: "one minus src alpha",
+            dstAlpha: 1
+          },
+          equation: {
+            rgb: "add",
+            alpha: "add"
+          },
+          color: [1, 1, 1, 1]
+        },
       });
     },
     createRegl() {

@@ -8,7 +8,9 @@
           @feature:create="createFeature"
           @feature:update="updateFeature"
           @feature:preview="previewFeature"
+          :selected="selected"
           :feature="tempFeature ? tempFeature.geometry : undefined"
+          :featureType="tempFeature ? tempFeature.type : undefined"
           @setCommand="setCommand"
         />
       </div>
@@ -18,7 +20,7 @@
           :nodes="scene"
           label-key="name"
           node-key="key"
-          :tick-strategy="'none'"
+          :tick-strategy="'strict'"
           :ticked.sync="ticked"
           :selected.sync="selected"
           :expanded.sync="expanded"
@@ -36,13 +38,16 @@
 <script>
 import Viewer from "./components/Viewer.vue";
 import * as CommandUI from "./components/commands";
+import * as Menu from "./components/menu";
+
 const debug = require("debug")("App");
 
 export default {
   name: "app",
   components: {
     Viewer,
-    ...CommandUI
+    ...CommandUI,
+    ...Menu
   },
   data() {
     return {
@@ -62,6 +67,8 @@ export default {
       this.setCommand("Menu");
       this.selected = null;
       this.tempFeature = undefined;
+      this.$set(this.preview, 0, undefined);
+      this.preview.length = 0;
     },
     previewFeature(feature) {
       this.preview = [feature];
@@ -74,15 +81,12 @@ export default {
       this.tempFeature = undefined;
     },
     handleSelected(selected) {
-      if (this.currentCommand !== "Menu") {
-        this.selected = null;
-      } else {
         this.tempFeature = this.scene[selected];
-        this.setCommand(this.tempFeature.type);
-      }
     },
     setCommand(command) {
       this.currentCommand = command;
+      this.$set(this.preview, 0, undefined);
+      this.preview.length = 0;
     }
   },
   mounted() {
