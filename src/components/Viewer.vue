@@ -6,14 +6,10 @@
 </template>
 
 <script>
-import wrapRegl from "regl";
-import reglCamera from "../js/camera";
-import { csgToGeometry } from "../js/util";
-import { primitives3d } from "@jscad/scad-api";
+import initRegl from "regl";
+import trackballCamera from "../js/camera";
 import Picking from "./Picking";
-import { phongShadingVert, phongShadingFrag } from "../js/shaders/phongShading";
-import { flatShadingVert, flatShadingFrag } from "../js/shaders/flatShading";
-
+import { createGeometry, createEdge, createPreview } from "../js/drawing";
 export default {
   name: "Viewer",
   props: {
@@ -35,115 +31,55 @@ export default {
   },
   watch: {
     preview(geometries) {
-      console.log("Preview UPDATED", geometries);
-      this.previewDC = [];
+      this.$drawPreview = [];
 
       geometries.forEach(geometry => {
         if (geometry) {
-          this.previewDC.push(this.parsePreview(geometry));
+          this.$drawPreview.push(createPreview(this.regl, geometry));
+          this.$drawEdges = [createEdge(this.regl, geometry)];
         }
       });
     },
     scene(nodes) {
-      console.log("SCENE UPDATED", nodes);
-      this.drawCSG = [];
+      this.$drawGeometry = [];
+      this.$drawEdges = [];
 
       nodes.forEach(node => {
         if (node.geometry) {
-          this.drawCSG.push(this.parseCSG(node.geometry));
+          this.$drawGeometry.push(createGeometry(this.regl, node.geometry));
+          this.$drawEdges.push(createEdge(this.regl, node.geometry));
         }
       });
     }
   },
   methods: {
-    parseCSG(csg, vert = phongShadingVert, frag = phongShadingFrag) {
-      var { vertices, indices, normals, colors } = csgToGeometry(csg);
-
-      return this.regl({
-        primitive: "triangles",
-        count: vertices.length,
-        vert: vert,
-        frag: frag,
-        attributes: {
-          position: vertices,
-          normal: normals,
-          color: colors
-        },
-        cull: {
-          enable: true,
-          face: "back"
-        }
-      });
-    },
-    parsePreview(csg, vert = flatShadingVert, frag = flatShadingFrag) {
-      var { vertices, indices, normals, colors } = csgToGeometry(csg);
-
-      return this.regl({
-        primitive: "triangles",
-        count: vertices.length,
-        vert: vert,
-        frag: frag,
-        attributes: {
-          position: vertices,
-          normal: normals
-        },
-        uniforms: {
-          color: [0.99, 0.59, 0.0, 1.0]
-        },
-        cull: {
-          enable: true,
-          face: "back"
-        },
-        depth: {
-          enable: false
-        },
-        blend: {
-          enable: true,
-          func: {
-            srcRGB: "src alpha",
-            srcAlpha: 0,
-            dstRGB: "one minus src alpha",
-            dstAlpha: 1
-          },
-          equation: {
-            rgb: "add",
-            alpha: "add"
-          },
-          color: [1, 1, 1, 1]
-        },
-      });
-    },
     createRegl() {
       if (!this.regl) {
-        this.regl = wrapRegl(this.$el);
+        this.regl = initRegl(this.$el);
 
-        this.camera = reglCamera(this.regl, {});
+        this.camera = trackballCamera(this.regl, {});
 
         this.regl.frame(() => {
           this.regl.clear({
             color: this.backgroundColor
           });
           this.camera(() => {
-            if (this.drawCSG.length > 0) this.drawCSG.forEach(dc => dc());
-            if (this.previewDC.length > 0) this.previewDC.forEach(dc => dc());
+            if (this.$drawGeometry.length > 0)
+              this.$drawGeometry.forEach(dc => dc());
+            if (this.$drawPreview.length > 0)
+              this.$drawPreview.forEach(dc => dc());
+            if (this.$drawEdges.length > 0) this.$drawEdges.forEach(dc => dc());
           });
         });
       }
       console.log("REGL", this.regl);
-    },
-    receiveChildCSG(childID, childGeometry) {
-      console.log("NiCad Viewer CSG", childGeometry);
-
-      // Quick hack to have the camera at a good distance from the model depending on its bounding box
-      // var distance = childGeometry.getBounds()[1]._y * 4;
-
-      this.createRegl();
-      this.parseCSG(childGeometry);
     }
   },
   mounted() {
-    this.drawCSG = [];
-    this.previewDC = [];
+    this.$drawGeometry = [];
+    this.$drawPreview = [];
+    this.$drawEdges = [];
+
     this.createRegl();
   },
   beforeDestroy() {

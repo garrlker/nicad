@@ -9,7 +9,8 @@ import "prismjs/themes/prism.css";
 import VuePrismEditor from "vue-prism-editor";
 import "vue-prism-editor/dist/VuePrismEditor.css"; // import the styles
 
-
+import { CAG, CSG } from "@jscad/csg";
+console.log(CAG, CSG);
 
 
 Vue.component("prism-editor", VuePrismEditor);

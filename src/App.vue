@@ -9,6 +9,7 @@
           @feature:update="updateFeature"
           @feature:preview="previewFeature"
           :selected="selected"
+          :staged="stagedBodies"
           :feature="tempFeature ? tempFeature.geometry : undefined"
           :featureType="tempFeature ? tempFeature.type : undefined"
           @setCommand="setCommand"
@@ -26,6 +27,7 @@
           :expanded.sync="expanded"
           default-expand-all
           @update:selected="handleSelected"
+          @update:ticked="handleTicked"
           no-connectors
         />
       </div>
@@ -57,6 +59,7 @@ export default {
       expanded: [],
       preview: [],
       scene: [],
+      stagedBodies: [],
       tempFeature: undefined
     };
   },
@@ -82,6 +85,12 @@ export default {
     },
     handleSelected(selected) {
         this.tempFeature = this.scene[selected];
+    },
+    handleTicked(ticked){
+      this.stagedBodies.length = 0;
+      ticked.forEach(tick => {
+        this.stagedBodies.push(this.scene[tick]);
+      })
     },
     setCommand(command) {
       this.currentCommand = command;
