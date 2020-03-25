@@ -47,6 +47,22 @@
         size="xl"
         @click="$emit('setCommand', 'Translate')"
       />
+      <q-btn
+        class="full-width"
+        color="primary"
+        label="Rotate"
+        icon="360"
+        size="xl"
+        @click="$emit('setCommand', 'Rotate')"
+      />
+      <q-btn
+        class="full-width"
+        color="primary"
+        label="Scale"
+        icon="360"
+        size="xl"
+        @click="$emit('setCommand', 'Scale')"
+      />
     </div>
   </div>
 </template>

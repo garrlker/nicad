@@ -1,13 +1,9 @@
-import Code from "./Code";
-import Cube from "./Cube";
-import Cylinder from "./Cylinder";
-import Sphere from "./Sphere";
-import Translate from "./Translate";
+import Code from "./Primitives/Code";
+import Cube from "./Primitives/Cube";
+import Cylinder from "./Primitives/Cylinder";
+import Rotate from "./Transforms/Rotate";
+import Scale from "./Transforms/Scale";
+import Sphere from "./Primitives/Sphere";
+import Translate from "./Transforms/Translate";
 
-export {
-  Code,
-  Cube,
-  Cylinder,
-  Sphere,
-  Translate
-}
+export { Code, Cube, Cylinder, Sphere, Rotate, Scale, Translate };

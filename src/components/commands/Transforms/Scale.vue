@@ -1,37 +1,37 @@
 <template>
   <div>
-    <q-badge color="red">X: {{ position[0] }}</q-badge>
+    <q-badge color="red">X: {{ dimensions[0] }}</q-badge>
     <q-slider
-      v-model="position[0]"
-      :min="-range"
+      v-model="dimensions[0]"
+      :min="0"
       :max="range"
       color="red"
-      @input="preview(position)"
+      @input="preview(dimensions)"
       :disable="feature === undefined"
     />
-    <q-badge color="green">Y: {{ position[1] }}</q-badge>
+    <q-badge color="green">Y: {{ dimensions[1] }}</q-badge>
     <q-slider
-      v-model="position[1]"
-      :min="-range"
+      v-model="dimensions[1]"
+      :min="0"
       :max="range"
       color="green"
-      @input="preview(position)"
+      @input="preview(dimensions)"
       :disable="feature === undefined"
     />
-    <q-badge color="blue">Z: {{ position[2] }}</q-badge>
+    <q-badge color="blue">Z: {{ dimensions[2] }}</q-badge>
     <q-slider
-      v-model="position[2]"
-      :min="-range"
+      v-model="dimensions[2]"
+      :min="0"
       :max="range"
       color="blue"
-      @input="preview(position)"
+      @input="preview(dimensions)"
       :disable="feature === undefined"
     />
     <q-btn
       align="right"
       color="primary"
       label="Update"
-      @click="update(position)"
+      @click="update(dimensions)"
     />
   </div>
 </template>
@@ -52,8 +52,8 @@ export default {
   },
   data() {
     return {
-      position: [0, 0, 0],
-      range: 100
+      dimensions: [1, 1, 1],
+      range: 20
     };
   },
   watch: {
@@ -69,14 +69,14 @@ export default {
   methods: {
     preview(delta) {
       if (this.feature) {
-        let geometry = this.feature.translate(delta);
+        let geometry = this.feature.scale(delta);
 
         this.$emit("feature:preview", geometry);
       }
     },
     update(delta) {
       if (this.feature) {
-        let geometry = this.feature.translate(delta);
+        let geometry = this.feature.scale(delta);
 
         this.$emit("feature:update", geometry);
         this.$emit("feature:preview", undefined);
@@ -84,8 +84,8 @@ export default {
     }
   },
   mounted() {
-    console.log("Translate Mounted", this.feature);
-    this.preview(this.position);
+    console.log("Scale Mounted", this.feature);
+    this.preview(this.dimensions);
   }
 };
 </script>
