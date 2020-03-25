@@ -63,6 +63,14 @@
         size="xl"
         @click="$emit('setCommand', 'Scale')"
       />
+      <q-btn
+        class="full-width"
+        color="primary"
+        label="Subtract"
+        icon="360"
+        size="xl"
+        @click="$emit('setCommand', 'Subtract')"
+      />
     </div>
   </div>
 </template>
