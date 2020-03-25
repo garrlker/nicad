@@ -35,7 +35,7 @@ export default {
         for (var i = 1; i < this.staged.length; i += 1) {
           geometry = geometry.subtract(this.staged[i].geometry);
         }
-        this.$emit("feature:update", geometry);
+        this.$emit("op:execute", geometry);
       }
     },
     preview() {

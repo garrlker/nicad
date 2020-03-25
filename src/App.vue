@@ -8,6 +8,7 @@
           @feature:create="createFeature"
           @feature:update="updateFeature"
           @feature:preview="previewFeature"
+          @op:execute="execute"
           :selected="selected"
           :staged="stagedBodies"
           :feature="tempFeature ? tempFeature.geometry : undefined"
@@ -64,6 +65,27 @@ export default {
     };
   },
   methods: {
+    execute(feature) {
+      // This is not final, but for now when executed
+      // Take the resulting geometry, put it to the first ticked slot
+      // Remove the rest, reset ticked
+      this.$set(this.scene[this.ticked[0]], "geometry", feature);
+      this.ticked.slice(1).forEach(el => this.deleteItem(this.ticked[el], el));
+      this.$set(this.ticked, 0, undefined);
+      this.ticked.length = 0;
+      this.setCommand("Menu");
+    },
+    deleteItem: function(feature, index) {
+      if (this.scene[index] === feature) {
+        // The template passes index as the second parameter to avoid indexOf,
+        // it will be better for the performance especially for one large array
+        // (because indexOf actually loop the array to do the match)
+        this.scene.splice(index, 1);
+      } else {
+        let found = this.scene.indexOf(feature);
+        this.scene.splice(found, 1);
+      }
+    },
     createFeature(feature) {
       feature.key = this.scene.length;
       this.scene.push(feature);
@@ -84,13 +106,13 @@ export default {
       this.tempFeature = undefined;
     },
     handleSelected(selected) {
-        this.tempFeature = this.scene[selected];
+      this.tempFeature = this.scene[selected];
     },
-    handleTicked(ticked){
+    handleTicked(ticked) {
       this.stagedBodies.length = 0;
       ticked.forEach(tick => {
         this.stagedBodies.push(this.scene[tick]);
-      })
+      });
     },
     setCommand(command) {
       this.currentCommand = command;
