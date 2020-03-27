@@ -31,7 +31,7 @@
       align="right"
       color="warning"
       label="Cancel"
-      @click="$emit('setCommand', 'Menu')"
+      @click="$emit('setCommand', '')"
     />
     <q-btn
       align="right"

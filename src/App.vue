@@ -1,15 +1,15 @@
 <template>
   <div id="app">
     <div class="interface">
-      <div class="left-sidebar">
+      <div v-show="currentCommand !== ''" class="left-sidebar">
         <component
           :is="currentCommand"
-          :mode="selected != null ? 'update' : 'new'"
+          :mode="ticked.length ? 'update' : 'new'"
           @feature:create="createFeature"
           @feature:update="updateFeature"
           @feature:preview="previewFeature"
           @op:execute="execute"
-          :selected="selected"
+          :selected="stagedBodies[0]"
           :staged="stagedBodies"
           :feature="tempFeature ? tempFeature.geometry : undefined"
           :featureType="tempFeature ? tempFeature.type : undefined"
@@ -32,7 +32,12 @@
           no-connectors
         />
       </div>
-      <div class="bottom-toolbar"></div>
+      <div class="bottom-toolbar">
+        <Menu @setCommand="setCommand" :selected="ticked" />
+      </div>
+      <div class="view-cube">
+        <p>View Cube</p>
+      </div>
     </div>
     <viewer ref="viewer" :scene="scene" :preview="preview"> </viewer>
   </div>
@@ -42,7 +47,6 @@
 import Viewer from "./components/Viewer.vue";
 import * as CommandUI from "./components/commands";
 import * as Menu from "./components/menu";
-
 const debug = require("debug")("App");
 
 export default {
@@ -54,7 +58,7 @@ export default {
   },
   data() {
     return {
-      currentCommand: "Menu",
+      currentCommand: "",
       selected: null,
       ticked: [],
       expanded: [],
@@ -73,7 +77,7 @@ export default {
       this.ticked.slice(1).forEach(el => this.deleteItem(this.ticked[el], el));
       this.$set(this.ticked, 0, undefined);
       this.ticked.length = 0;
-      this.setCommand("Menu");
+      this.setCommand("");
     },
     deleteItem: function(feature, index) {
       if (this.scene[index] === feature) {
@@ -89,7 +93,7 @@ export default {
     createFeature(feature) {
       feature.key = this.scene.length;
       this.scene.push(feature);
-      this.setCommand("Menu");
+      this.setCommand("");
       this.selected = null;
       this.tempFeature = undefined;
       this.$set(this.preview, 0, undefined);
@@ -101,27 +105,25 @@ export default {
     updateFeature(feature) {
       this.$set(this.scene[this.selected], "geometry", feature);
       this.$set(this.scene, this.selected, this.scene[this.selected]);
-      this.setCommand("Menu");
+      this.setCommand("");
       this.selected = null;
       this.tempFeature = undefined;
     },
     handleSelected(selected) {
-      this.tempFeature = this.scene[selected];
+      // this.tempFeature = this.scene[selected];
     },
     handleTicked(ticked) {
       this.stagedBodies.length = 0;
       ticked.forEach(tick => {
         this.stagedBodies.push(this.scene[tick]);
       });
+      this.tempFeature = this.stagedBodies[0];
     },
     setCommand(command) {
       this.currentCommand = command;
       this.$set(this.preview, 0, undefined);
       this.preview.length = 0;
     }
-  },
-  mounted() {
-    // debug("CSG", CSG);
   }
 };
 </script>
@@ -134,25 +136,25 @@ export default {
   left: 0px;
   right: 0px;
 }
+.interface {
+  pointer-events: none;
+  position: absolute;
+  top: 0px;
+  bottom: 0px;
+  left: 0px;
+  right: 0px;
 
-@media only screen and (min-width: 1024px) {
-  .interface {
-    pointer-events: none;
-    position: absolute;
-    top: 0px;
-    bottom: 0px;
-    left: 0px;
-    right: 0px;
+  display: grid;
 
-    display: grid;
-    grid-template: auto 24px / 240px auto 240px;
+  @media only screen and (min-width: 1024px) {
+    grid-template-columns: 4fr 6fr 12fr 4fr;
+    grid-template-rows: 2fr 8fr 3fr 1.5fr;
 
     .left-sidebar {
       pointer-events: auto;
-      grid-column: 1 / 2;
-      grid-row: 1 / 2;
+      grid-row: 2 / span 1;
+      grid-column: 1 / span 1;
       border-radius: 1px;
-      // border: 1px solid rgba(255, 255, 255, 0.2);
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1), 0 1px 8px rgba(0, 0, 0, 0.2);
       background-blend-mode: exclusion;
       background-color: rgba(255, 255, 255, 0.6);
@@ -162,44 +164,77 @@ export default {
 
     .right-sidebar {
       pointer-events: auto;
-      grid-column: 3 / 4;
-      grid-row: 1 / 2;
-      // border-radius: 0em 0em 0em 0.5em;
-      // border: 1px solid rgba(255, 255, 255, 0.2);
+      grid-row: 1 / span 3;
+      grid-column: 4 / span 1;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1), 0 1px 8px rgba(0, 0, 0, 0.2);
       background-blend-mode: exclusion;
       background-color: rgba(255, 255, 255, 0.6);
-      // background: linear-gradient(
-      //   rgba(255, 255, 255, 0.1),
-      //   rgba(209, 209, 209, 1)
-      // );
       backdrop-filter: blur(20px) saturate(125%);
-
-      // Disabling the hover for now, it's annoying
-      // This probably means it isn't a good idea
-      // transform: translateX(75%);
-      // -webkit-transform: translateX(75%);
-      // transition: transform 0.2s ease;
       transition: ease 0.2s;
+      margin-left: 4em;
     }
 
     .bottom-toolbar {
       z-index: 2;
       pointer-events: auto;
-      grid-column: 1 / 4;
-      grid-row: 2 / 3;
-      // border: 1px solid rgba(255, 255, 255, 0.2);
-      // box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1), 0 1px 8px rgba(0, 0, 0, 0.2);
-      // background-blend-mode: exclusion;
+      grid-row: 4 / span 1;
+      grid-column: 2 / span 2;
+      border-top-left-radius: 1em;
+      border-top-right-radius: 1em;
       border: 1px black;
-      // background-color: rgba(209, 209, 209, 1);
-      background-color: #fe9801;
-      backdrop-filter: blur(10px);
+      background-color: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(20px) saturate(125%);
     }
 
-    .right-sidebar:hover {
-      // transform: translateX(0%);
-      // -webkit-transform: translateX(0%);
+    .view-cube {
+      grid-row: 3 / span 2;
+      grid-column: 1 / span 1;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2;
+      background-color: rgba(255, 165, 0, 0.5);
+    }
+  }
+
+  @media only screen and (max-width: 1024px) {
+    grid-template-columns: 1fr 6fr 1fr;
+    grid-template-rows: 5fr 4fr 1fr;
+    .left-sidebar {
+      // display: none;
+      grid-row: 2 / span 2;
+      grid-column: 2 / span 1;
+      z-index: 3;
+      pointer-events: auto;
+      border-radius: 1px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1), 0 1px 8px rgba(0, 0, 0, 0.2);
+      background-blend-mode: exclusion;
+      background-color: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(20px) saturate(125%);
+      transition: ease 0.2s;
+    }
+    .right-sidebar {
+      display: none;
+    }
+    .bottom-toolbar {
+      grid-row: 3 / span 1;
+      grid-column: 2 / span 1;
+      z-index: 2;
+      pointer-events: auto;
+      border-top-left-radius: 1em;
+      border-top-right-radius: 1em;
+      border: 1px black;
+      background-color: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(20px) saturate(125%);
+      overflow: scroll;
+    }
+    .view-cube {
+      display: none;
+    }
+    .view {
+      grid-row: 1 / span 3;
+      grid-column: 1 / span 3;
     }
   }
 }
