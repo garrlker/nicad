@@ -1,7 +1,9 @@
 <template>
   <div>
     <div class="q-pa-md q-gutter-sm">
-      <h6 class="text-h6 text-center"> {{ mode === 'new' ? 'Create Cylinder' : 'Edit Cylinder' }} </h6>
+      <h6 class="text-h6 text-center">
+        {{ isCreating ? "Create Cylinder" : "Edit Cylinder" }}
+      </h6>
       <q-input v-model.number="length" type="number" filled label="Length" />
       <q-input v-model.number="radius" type="number" filled label="Radius" />
 
@@ -15,88 +17,58 @@
       <q-btn
         align="right"
         color="primary"
-        :label="mode === 'new' ? 'Create' : 'Update'"
-        @click="
-          mode === 'new' ? create(length, radius) : update(length, radius)
-        "
+        :label="isCreating ? 'Create' : 'Update'"
+        @click="isCreating ? $emit('feature:create', cylinder)
+            : $emit('feature:update', cylinder.geometry)"
       />
     </div>
   </div>
 </template>
 
 <script>
-import { CSG } from "@jscad/csg";
+import { createCylinder } from "./Cylinder.js";
 
 export default {
   name: "Cylinder",
   props: {
-    mode: {
-      type: String,
-      default: "new"
-    },
-    feature: {
-      type: Object
+    featureType: {
+      type: String
     }
   },
   data() {
     return {
       length: 10,
-      radius: 10
+      radius: 10,
+      cylinder: undefined
     };
   },
   watch: {
     length(newLength) {
-      this.preview(newLength, this.radius);
+      this.generate();
     },
     radius(newRadius) {
-      this.preview(this.length, newRadius);
+      this.generate();
+    }
+  },
+  computed: {
+    isCreating() {
+      return this.featureType !== "Cylinder";
     }
   },
   methods: {
-    create(length, radius) {
-      console.log("create Cylinder - Starting");
-      let geometry = CSG.cylinder({
-        start: [0, -length / 2, 0],
-        end: [0, length / 2, 0],
-        radius,
-        resolution: 16
-      });
-
-      let feature = {
+    generate() {
+      this.cylinder = {
         name: "Cylinder",
         children: [],
-        geometry,
+        geometry: createCylinder(this.radius, this.length),
         type: "Cylinder"
       };
-
-      this.$emit("feature:create", feature);
-      console.log("create Cylinder - Output", feature);
-    },
-    preview(length, radius) {
-      let geometry = CSG.cylinder({
-        start: [0, -length / 2, 0],
-        end: [0, length / 2, 0],
-        radius,
-        resolution: 16
-      });
-
-      this.$emit("feature:preview", geometry);
-    },
-    update(length, radius) {
-      let geometry = CSG.cylinder({
-        start: [0, -length / 2, 0],
-        end: [0, length / 2, 0],
-        radius,
-        resolution: 16
-      });
-
-      this.$emit("feature:update", geometry);
-      this.$emit("feature:preview", undefined);
+      this.$emit("feature:preview", this.cylinder.geometry);
     }
   },
   mounted() {
     console.log("Cylinder Mounted");
-    this.preview(this.length, this.radius);
+    this.generate();
   }
 };
 </script>

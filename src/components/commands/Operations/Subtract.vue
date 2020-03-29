@@ -33,7 +33,7 @@ export default {
       if (this.staged.length > 1) {
         var geometry = this.staged[0].geometry;
         for (var i = 1; i < this.staged.length; i += 1) {
-          geometry = geometry.subtract(this.staged[i].geometry);
+          geometry = geometry.subtract(this.staged.slice(1).map(node => node.geometry));
         }
         this.$emit("op:execute", geometry);
       }
@@ -42,7 +42,7 @@ export default {
       if (this.staged.length > 1) {
         var geometry = this.staged[0].geometry;
         for (var i = 1; i < this.staged.length; i += 1) {
-          geometry = geometry.subtract(this.staged[i].geometry);
+          geometry = geometry.subtract(this.staged.slice(1).map(node => node.geometry));
         }
         this.$emit("feature:preview", geometry);
       }

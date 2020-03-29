@@ -1,7 +1,9 @@
 <template>
   <div>
     <div class="q-pa-md q-gutter-sm">
-      <h6 class="text-h6 text-center"> {{ mode === 'new' ? 'Create Cube' : 'Edit Cube' }}</h6>
+      <h6 class="text-h6 text-center">
+        {{ isCreating ? "Create Cube" : "Edit Cube" }}
+      </h6>
 
       <q-input
         v-model.number="dimensions[0]"
@@ -30,76 +32,58 @@
       <q-btn
         align="right"
         color="primary"
-        :label="mode === 'new' ? 'Create' : 'Update'"
-        @click="mode === 'new' ? create(dimensions) : update(dimensions)"
+        :label="isCreating ? 'Create' : 'Update'"
+        @click="
+          isCreating
+            ? $emit('feature:create', cube)
+            : $emit('feature:update', cube.geometry)
+        "
       />
     </div>
   </div>
 </template>
 
 <script>
-import { CSG } from "@jscad/csg";
+import { createCube } from "./Cube.js";
 import { v1 as uuidv1 } from "uuid";
-console.log("CSG", CSG);
 
 export default {
   name: "Cube",
   props: {
-    mode: {
-      type: String,
-      default: "new"
-    },
-    feature: {
-      type: Object
+    featureType: {
+      type: String
     }
   },
   data() {
     return {
       dimensions: [10, 10, 10],
-      position: [0, 0, 0]
+      position: [0, 0, 0],
+      cube: undefined
     };
   },
   watch: {
     dimensions(newDims) {
-      this.preview(newDims);
+      this.generate();
+    }
+  },
+  computed: {
+    isCreating() {
+      return this.featureType !== "Cube";
     }
   },
   methods: {
-    create(dimensions) {
-      console.log("create Cube - Starting");
-      let geometry = CSG.cube({
-        radius: dimensions
-      });
-
-      let feature = {
+    generate() {
+      this.cube = {
         name: "Cube",
         children: [],
-        geometry,
+        geometry: createCube(this.dimensions),
         type: "Cube"
       };
-
-      this.$emit("feature:create", feature);
-      console.log("create Cube - Output", feature);
-    },
-    preview(dimensions) {
-      let geometry = CSG.cube({
-        radius: dimensions
-      });
-
-      this.$emit("feature:preview", geometry);
-    },
-    update(dimensions) {
-      let geometry = CSG.cube({
-        radius: dimensions
-      });
-
-      this.$emit("feature:update", geometry);
-      this.$emit("feature:preview", undefined);
+      this.$emit("feature:preview", this.cube.geometry)
     }
   },
   mounted() {
-    console.log("Cube Mounted");
-    this.preview(this.dimensions);
+    this.generate();
   }
 };
 </script>

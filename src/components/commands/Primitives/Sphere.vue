@@ -1,7 +1,9 @@
 <template>
   <div>
     <div class="q-pa-md q-gutter-sm">
-      <h6 class="text-h6 text-center"> {{ mode === 'new' ? 'Create Sphere' : 'Edit Sphere' }} </h6>
+      <h6 class="text-h6 text-center">
+        {{ isCreating ? "Create Sphere" : "Edit Sphere" }}
+      </h6>
       <q-input v-model.number="radius" type="number" filled label="Radius" />
 
       <q-btn
@@ -14,69 +16,57 @@
       <q-btn
         align="right"
         color="primary"
-        :label="mode === 'new' ? 'Create' : 'Update'"
-        @click="mode === 'new' ? create(radius) : update(radius)"
+        :label="isCreating ? 'Create' : 'Update'"
+        @click="
+          isCreating
+            ? $emit('feature:create', sphere)
+            : $emit('feature:update', sphere.geometry)
+        "
       />
     </div>
   </div>
 </template>
 
 <script>
-import { CSG } from "@jscad/csg";
-import { v1 as uuidv1 } from "uuid";
-console.log("CSG", CSG);
+import { createSphere } from "./Sphere.js";
 
 export default {
   name: "Sphere",
   props: {
-    mode: {
-      type: String,
-      default: "new"
-    },
-    feature: {
-      type: Object
+    featureType: {
+      type: String
     }
   },
   data() {
     return {
-      radius: 10
+      radius: 5,
+      sphere: undefined
     };
   },
   watch: {
     radius(newRadius) {
-      this.preview(newRadius);
+      this.generate();
+    }
+  },
+  computed: {
+    isCreating() {
+      return this.featureType !== "Sphere";
     }
   },
   methods: {
-    create(radius) {
-      console.log("create Sphere - Starting");
-      let geometry = CSG.sphere({ radius, resolution: 64 });
-
-      let feature = {
+    generate() {
+      this.sphere = {
         name: "Sphere",
         children: [],
-        geometry,
+        geometry: createSphere(this.radius),
         type: "Sphere"
       };
-
-      this.$emit("feature:create", feature);
-      console.log("create Sphere - Output", feature);
-    },
-    preview(radius) {
-      let geometry = CSG.sphere({ radius, resolution: 32 });
-      console.log("PREVIEW CALLBACK CALLED");
-      this.$emit("feature:preview", geometry);
-    },
-    update(radius) {
-      let geometry = CSG.sphere({ radius, resolution: 64 });
-
-      this.$emit("feature:update", geometry);
-      this.$emit("feature:preview", undefined);
+      this.$emit("feature:preview", this.sphere.geometry);
     }
   },
   mounted() {
     console.log("Sphere Mounted");
-    this.preview(this.radius);
+    this.generate();
   }
 };
 </script>
