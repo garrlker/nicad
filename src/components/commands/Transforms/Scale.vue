@@ -1,91 +1,77 @@
 <template>
   <div>
-    <q-badge color="red">X: {{ dimensions[0] }}</q-badge>
+    <q-badge color="red">X: {{ factors[0] }}</q-badge>
     <q-slider
-      v-model="dimensions[0]"
+      v-model="factors[0]"
       :min="0"
       :max="range"
       color="red"
-      @input="preview(dimensions)"
-      :disable="feature === undefined"
+      :disable="selected.length === 0"
     />
-    <q-badge color="green">Y: {{ dimensions[1] }}</q-badge>
+    <q-badge color="green">Y: {{ factors[1] }}</q-badge>
     <q-slider
-      v-model="dimensions[1]"
+      v-model="factors[1]"
       :min="0"
       :max="range"
       color="green"
-      @input="preview(dimensions)"
-      :disable="feature === undefined"
+      :disable="selected.length === 0"
     />
-    <q-badge color="blue">Z: {{ dimensions[2] }}</q-badge>
+    <q-badge color="blue">Z: {{ factors[2] }}</q-badge>
     <q-slider
-      v-model="dimensions[2]"
+      v-model="factors[2]"
       :min="0"
       :max="range"
       color="blue"
-      @input="preview(dimensions)"
-      :disable="feature === undefined"
+      :disable="selected.length === 0"
     />
+
+    <q-btn
+      align="right"
+      color="warning"
+      label="Cancel"
+      @click="$emit('setCommand', '')"
+    />
+
     <q-btn
       align="right"
       color="primary"
       label="Update"
-      @click="update(dimensions)"
+      @click="$emit('feature:update', scaledMesh)"
     />
   </div>
 </template>
 
 <script>
-import { CSG } from "@jscad/csg";
+import scaleMesh from "./Scale.js";
 
 export default {
-  name: "Translate",
+  name: "Scale",
   props: {
-    mode: {
-      type: String,
-      default: "new"
-    },
-    feature: {
-      type: Object
+    selected: {
+      type: Array
     }
   },
   data() {
     return {
-      dimensions: [1, 1, 1],
-      range: 20
+      factors: [1, 1, 1],
+      range: 20,
+      scaledMesh: undefined
     };
   },
   watch: {
-    feature(newFeature, oldFeature) {
-      if (this.newFeature.meta) {
-        this.$previewGeometry = this.newFeature.meta.preview(
-          ...this.newFeature.meta.params
-        );
-        console.log("Preview Geom Generated", this.$previewGeometry);
-      }
+    factors() {
+      this.generate();
     }
   },
   methods: {
-    preview(delta) {
-      if (this.feature) {
-        let geometry = this.feature.scale(delta);
-
-        this.$emit("feature:preview", geometry);
-      }
-    },
-    update(delta) {
-      if (this.feature) {
-        let geometry = this.feature.scale(delta);
-
-        this.$emit("feature:update", geometry);
-        this.$emit("feature:preview", undefined);
-      }
+    generate() {
+      this.scaledMesh = scaleMesh(this.factors, this.selected[0].geometry);
+      this.$emit("feature:preview", this.scaledMesh);
     }
   },
   mounted() {
-    console.log("Scale Mounted", this.feature);
-    this.preview(this.dimensions);
+    console.log("Scale Mounted");
+    this.generate();
   }
 };
 </script>

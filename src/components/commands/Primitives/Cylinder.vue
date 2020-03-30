@@ -18,8 +18,11 @@
         align="right"
         color="primary"
         :label="isCreating ? 'Create' : 'Update'"
-        @click="isCreating ? $emit('feature:create', cylinder)
-            : $emit('feature:update', cylinder.geometry)"
+        @click="
+          isCreating
+            ? $emit('feature:create', cylinder)
+            : $emit('feature:update', cylinder.geometry)
+        "
       />
     </div>
   </div>
@@ -31,8 +34,8 @@ import { createCylinder } from "./Cylinder.js";
 export default {
   name: "Cylinder",
   props: {
-    featureType: {
-      type: String
+    selected: {
+      type: Array
     }
   },
   data() {
@@ -51,18 +54,16 @@ export default {
     }
   },
   computed: {
+    selectedFeatureType(){
+      return this.selected[0] ? this.selected[0].type : undefined;
+    },
     isCreating() {
-      return this.featureType !== "Cylinder";
+      return this.selectedFeatureType !== "Cylinder";
     }
   },
   methods: {
     generate() {
-      this.cylinder = {
-        name: "Cylinder",
-        children: [],
-        geometry: createCylinder(this.radius, this.length),
-        type: "Cylinder"
-      };
+      this.cylinder = createCylinder(this.radius, this.length);
       this.$emit("feature:preview", this.cylinder.geometry);
     }
   },

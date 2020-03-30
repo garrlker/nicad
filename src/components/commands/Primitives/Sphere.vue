@@ -33,8 +33,8 @@ import { createSphere } from "./Sphere.js";
 export default {
   name: "Sphere",
   props: {
-    featureType: {
-      type: String
+    selected: {
+      type: Array
     }
   },
   data() {
@@ -49,18 +49,16 @@ export default {
     }
   },
   computed: {
+    selectedFeatureType(){
+      return this.selected[0] ? this.selected[0].type : undefined;
+    },
     isCreating() {
-      return this.featureType !== "Sphere";
+      return this.selectedFeatureType !== "Sphere";
     }
   },
   methods: {
     generate() {
-      this.sphere = {
-        name: "Sphere",
-        children: [],
-        geometry: createSphere(this.radius),
-        type: "Sphere"
-      };
+      this.sphere = createSphere(this.radius);
       this.$emit("feature:preview", this.sphere.geometry);
     }
   },

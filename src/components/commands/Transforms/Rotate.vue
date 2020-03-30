@@ -6,8 +6,7 @@
       :min="0"
       :max="360"
       color="red"
-      @input="preview(direction)"
-      :disable="feature === undefined"
+      :disable="selected.length === 0"
     />
     <q-badge color="green">Y: {{ direction[1] }}</q-badge>
     <q-slider
@@ -15,8 +14,7 @@
       :min="0"
       :max="360"
       color="green"
-      @input="preview(direction)"
-      :disable="feature === undefined"
+      :disable="selected.length === 0"
     />
     <q-badge color="blue">Z: {{ direction[2] }}</q-badge>
     <q-slider
@@ -24,8 +22,7 @@
       :min="0"
       :max="360"
       color="blue"
-      @input="preview(direction)"
-      :disable="feature === undefined"
+      :disable="selected.length === 0"
     />
     <q-btn
       align="right"
@@ -37,69 +34,46 @@
       align="right"
       color="primary"
       label="Update"
-      @click="update(direction)"
+      @click="$emit('feature:update', rotatedMesh)"
     />
   </div>
 </template>
 
 <script>
-import { CSG } from "@jscad/csg";
+import rotateMesh from "./Rotate.js";
 
 export default {
   name: "Rotate",
   props: {
-    mode: {
-      type: String,
-      default: "new"
-    },
-    feature: {
-      type: Object
+    selected: {
+      type: Array
     }
   },
   data() {
     return {
       direction: [0, 0, 0],
-      range: 100
+      rotatedMesh: undefined
     };
   },
   watch: {
-    feature(newFeature, oldFeature) {
-      if (this.newFeature.meta) {
-        this.$previewGeometry = this.newFeature.meta.preview(
-          ...this.newFeature.meta.params
-        );
-        console.log("Preview Geom Generated", this.$previewGeometry);
-      }
+    direction() {
+      this.generate();
     }
   },
   methods: {
-    rotate(geometry, delta){
-      geometry = geometry.rotateX(delta[0]);
-      geometry = geometry.rotateY(delta[1]);
-      geometry = geometry.rotateZ(delta[2]);
-      return geometry;
-    },
-    preview(delta) {
-      if (this.feature) {
-        let geometry = this.feature;
-        geometry = this.rotate(geometry, delta);
-
-        this.$emit("feature:preview", geometry);
-      }
-    },
-    update(delta) {
-      if (this.feature) {
-        let geometry = this.feature;
-        geometry = this.rotate(geometry, delta);
-        
-        this.$emit("feature:update", geometry);
-        this.$emit("feature:preview", undefined);
+    generate() {
+      if (this.selected.length > 0) {
+        this.rotatedMesh = rotateMesh(
+          this.direction,
+          this.selected[0].geometry
+        );
+        this.$emit("feature:preview", this.rotatedMesh);
       }
     }
   },
   mounted() {
-    console.log("Rotate Mounted", this.feature);
-    this.preview(this.direction);
+    console.log("Rotate Mounted");
+    this.generate();
   }
 };
 </script>

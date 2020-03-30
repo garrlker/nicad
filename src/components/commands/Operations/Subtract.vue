@@ -7,50 +7,50 @@
       @click="$emit('setCommand', '')"
     />
 
-    <q-btn align="right" color="primary" label="Commit" @click="commit" />
+    <q-btn
+      align="right"
+      color="primary"
+      label="Commit"
+      @click="$emit('op:execute', output)"
+    />
   </div>
 </template>
 
 <script>
-import { CSG } from "@jscad/csg";
+import subtract from "./Subtract";
 
 export default {
   name: "Subtract",
   props: {
-    feature: {
-      type: Object
-    },
     staged: {
       type: Array,
       default: () => []
     }
   },
   data() {
-    return {};
+    return {
+      output: undefined
+    };
+  },
+  watch: {
+    stagedGeometries() {
+      this.execute();
+    }
+  },
+  computed: {
+    stagedGeometries(){
+      return this.staged.map(feature => feature.geometry);
+    }
   },
   methods: {
-    commit() {
-      if (this.staged.length > 1) {
-        var geometry = this.staged[0].geometry;
-        for (var i = 1; i < this.staged.length; i += 1) {
-          geometry = geometry.subtract(this.staged.slice(1).map(node => node.geometry));
-        }
-        this.$emit("op:execute", geometry);
-      }
-    },
-    preview() {
-      if (this.staged.length > 1) {
-        var geometry = this.staged[0].geometry;
-        for (var i = 1; i < this.staged.length; i += 1) {
-          geometry = geometry.subtract(this.staged.slice(1).map(node => node.geometry));
-        }
-        this.$emit("feature:preview", geometry);
-      }
+    execute() {
+      this.output = subtract(this.stagedGeometries);
+      this.$emit("feature:preview", this.output);
     }
   },
   mounted() {
     console.log("Subtract Mounted");
-    this.preview();
+    this.execute();
   }
 };
 </script>

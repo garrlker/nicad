@@ -1,31 +1,28 @@
 <template>
   <div>
-    <q-badge color="red">X: {{ position[0] }}</q-badge>
+    <q-badge color="red">X: {{ offset[0] }}</q-badge>
     <q-slider
-      v-model="position[0]"
+      v-model="offset[0]"
       :min="-range"
       :max="range"
       color="red"
-      @input="preview(position)"
-      :disable="feature === undefined"
+      :disable="selected.length === 0"
     />
-    <q-badge color="green">Y: {{ position[1] }}</q-badge>
+    <q-badge color="green">Y: {{ offset[1] }}</q-badge>
     <q-slider
-      v-model="position[1]"
+      v-model="offset[1]"
       :min="-range"
       :max="range"
       color="green"
-      @input="preview(position)"
-      :disable="feature === undefined"
+      :disable="selected.length === 0"
     />
-    <q-badge color="blue">Z: {{ position[2] }}</q-badge>
+    <q-badge color="blue">Z: {{ offset[2] }}</q-badge>
     <q-slider
-      v-model="position[2]"
+      v-model="offset[2]"
       :min="-range"
       :max="range"
       color="blue"
-      @input="preview(position)"
-      :disable="feature === undefined"
+      :disable="selected.length === 0"
     />
 
     <q-btn
@@ -39,61 +36,45 @@
       align="right"
       color="primary"
       label="Update"
-      @click="update(position)"
+      @click="$emit('feature:update', translatedMesh)"
     />
   </div>
 </template>
 
 <script>
-import { CSG } from "@jscad/csg";
+import translateMesh from "./Translate.js";
 
 export default {
   name: "Translate",
   props: {
-    mode: {
-      type: String,
-      default: "new"
-    },
-    feature: {
-      type: Object
+    selected: {
+      type: Array
     }
   },
   data() {
     return {
-      position: [0, 0, 0],
-      range: 100
+      offset: [0, 0, 0],
+      range: 100,
+      translatedMesh: undefined
     };
   },
   watch: {
-    feature(newFeature, oldFeature) {
-      if (this.newFeature.meta) {
-        this.$previewGeometry = this.newFeature.meta.preview(
-          ...this.newFeature.meta.params
-        );
-        console.log("Preview Geom Generated", this.$previewGeometry);
-      }
+    offset() {
+      this.generate();
     }
   },
   methods: {
-    preview(delta) {
-      if (this.feature) {
-        let geometry = this.feature.translate(delta);
-
-        this.$emit("feature:preview", geometry);
-      }
-    },
-    update(delta) {
-      if (this.feature) {
-        let geometry = this.feature.translate(delta);
-
-        this.$emit("feature:update", geometry);
-        this.$emit("feature:preview", undefined);
-      }
+    generate() {
+      this.translatedMesh = translateMesh(
+        this.offset,
+        this.selected[0].geometry
+      );
+      this.$emit("feature:preview", this.translatedMesh);
     }
   },
   mounted() {
-    console.log("Translate Mounted", this.feature);
-    this.preview(this.position);
+    console.log("Translate Mounted");
+    this.generate();
   }
 };
 </script>

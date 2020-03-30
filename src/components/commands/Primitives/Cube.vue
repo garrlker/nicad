@@ -50,8 +50,8 @@ import { v1 as uuidv1 } from "uuid";
 export default {
   name: "Cube",
   props: {
-    featureType: {
-      type: String
+    selected: {
+      type: Array
     }
   },
   data() {
@@ -67,18 +67,16 @@ export default {
     }
   },
   computed: {
+    selectedFeatureType(){
+      return this.selected[0] ? this.selected[0].type : undefined;
+    },
     isCreating() {
-      return this.featureType !== "Cube";
+      return this.selectedFeatureType !== "Cube";
     }
   },
   methods: {
     generate() {
-      this.cube = {
-        name: "Cube",
-        children: [],
-        geometry: createCube(this.dimensions),
-        type: "Cube"
-      };
+      this.cube = createCube(this.dimensions);
       this.$emit("feature:preview", this.cube.geometry)
     }
   },
