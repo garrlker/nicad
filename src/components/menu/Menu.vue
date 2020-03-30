@@ -44,12 +44,13 @@ export default {
           break;
         case 1:
           return [
+            { name: this.selected[0].name, icon: "edit" },
             { name: "Translate", icon: "app:translate" },
             { name: "Rotate", icon: "app:rotate" },
-            { name: "Scale", icon: "app:scale" }
+            { name: "Scale", icon: "app:scale" },
           ];
           break;
-        case 2:
+        default:
           return [{ name: "Subtract", icon: "app:subtract" }];
           break;
       }
@@ -57,6 +58,9 @@ export default {
   },
   created() {
     // Temporary hack to make raw SVGs work with Quasar
+    // The paths become urls, the svgs are stored in public.
+
+    // This was easier to rig than making quasar support SVGS that aren't a webfont
     const myIcons = {
       "app:cube": "img:assets/icons/cube.svg",
       "app:cylinder": "img:assets/icons/cylinder.svg",

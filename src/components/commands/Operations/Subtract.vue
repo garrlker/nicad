@@ -22,7 +22,7 @@ import subtract from "./Subtract";
 export default {
   name: "Subtract",
   props: {
-    staged: {
+    selected: {
       type: Array,
       default: () => []
     }
@@ -33,18 +33,18 @@ export default {
     };
   },
   watch: {
-    stagedGeometries() {
+    selectedGeometries() {
       this.execute();
     }
   },
   computed: {
-    stagedGeometries(){
-      return this.staged.map(feature => feature.geometry);
+    selectedGeometries(){
+      return this.selected.map(feature => feature.geometry);
     }
   },
   methods: {
     execute() {
-      this.output = subtract(this.stagedGeometries);
+      this.output = subtract(this.selectedGeometries);
       this.$emit("feature:preview", this.output);
     }
   },

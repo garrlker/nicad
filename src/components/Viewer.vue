@@ -40,16 +40,20 @@ export default {
         }
       });
     },
-    scene(nodes) {
-      this.$drawGeometry = [];
-      this.$drawEdges = [];
+    scene: {
+      handler(nodes) {
+        console.log("SCENE CHANGED - Viewer");
+        this.$drawGeometry = [];
+        this.$drawEdges = [];
 
-      nodes.forEach(node => {
-        if (node.geometry) {
-          this.$drawGeometry.push(createGeometry(this.regl, node.geometry));
-          this.$drawEdges.push(createEdge(this.regl, node.geometry));
-        }
-      });
+        nodes.forEach(node => {
+          if (node.geometry) {
+            this.$drawGeometry.push(createGeometry(this.regl, node.geometry));
+            this.$drawEdges.push(createEdge(this.regl, node.geometry));
+          }
+        });
+      },
+      deep: true
     }
   },
   methods: {
