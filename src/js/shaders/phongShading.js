@@ -1,4 +1,4 @@
-export const phongShadingVert = `
+export const phongVertex = `
 precision mediump float;
 uniform mat4 projection, view;
 attribute vec3 position, normal;
@@ -14,7 +14,7 @@ void main () {
   gl_Position = projection * view * vec4(position, 1.0);
 }`;
 
-export const phongShadingFrag = `
+export const phongFragment = `
 precision mediump float;
 uniform vec3 eye;
 varying vec3 vnormal;

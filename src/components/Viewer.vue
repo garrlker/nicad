@@ -1,99 +1,89 @@
 <template>
-  <div class="viewer" @wheel.prevent @click="rotate">
-    <picking :reglCtx="regl" />
+  <div class="viewer" @wheel.prevent>
+    <!-- <picking :reglCtx="regl" /> -->
     <slot></slot>
   </div>
 </template>
 
 <script>
-import wrapRegl from "regl";
-import reglCamera from "../js/camera";
-import { csgToGeometry } from "../js/util";
-import { primitives3d } from "@jscad/scad-api";
+import initRegl from "regl";
+import trackballCamera from "../js/camera";
 import Picking from "./Picking";
-// import { flatShadingVert, flatShadingFrag } from "../js/shaders/flatShading";
-import {
-  phongShadingVert,
-  phongShadingFrag
-} from "../js/shaders/phongShading";
-
-// if(!window.regl){
-//   window.regl = wrapRegl;
-// }
-
+import { createGeometry, createEdge, createPreview } from "../js/drawing";
 export default {
   name: "Viewer",
-  provide() {
-    return {
-      outputCSGtoParent: this.receiveChildCSG
-    };
-  },
   props: {
     backgroundColor: {
       type: Array,
       default: () => [0.66, 0.66, 0.66, 1]
     },
-    theta: {
-      type: Number,
-      default: 0
+    scene: {
+      type: Array,
+      default: () => []
     },
-    phi: {
-      type: Number,
-      default: 0
+    preview: {
+      type: Array,
+      default: () => []
     }
   },
   components: {
     Picking
   },
-  methods: {
-    createCSGDrawCall(csg) {
-      var { vertices, indices, normals, colors } = csgToGeometry(csg);
-      this.drawCSG = this.regl({
-        frag: phongShadingFrag,
-        vert: phongShadingVert,
-        attributes: {
-          position: vertices,
-          normal: normals,
-          color: colors
-        },
-        elements: indices,
-        cull: {
-          enable: true,
-          face: "back"
+  watch: {
+    preview(geometries) {
+      this.$drawPreview = [];
+
+      geometries.forEach(geometry => {
+        if (geometry) {
+          this.$drawPreview.push(createPreview(this.regl, geometry));
+          this.$drawEdges = [createEdge(this.regl, geometry)];
         }
       });
     },
+    scene: {
+      handler(nodes) {
+        console.log("SCENE CHANGED - Viewer");
+        this.$drawGeometry = [];
+        this.$drawEdges = [];
+
+        nodes.forEach(node => {
+          if (node.geometry) {
+            this.$drawGeometry.push(createGeometry(this.regl, node.geometry));
+            this.$drawEdges.push(createEdge(this.regl, node.geometry));
+          }
+        });
+      },
+      deep: true
+    }
+  },
+  methods: {
     createRegl() {
       if (!this.regl) {
-        this.regl = wrapRegl(this.$el);
+        this.regl = initRegl(this.$el);
 
-      this.camera = reglCamera(this.regl, {});
+        this.camera = trackballCamera(this.regl, {});
 
-      this.regl.frame(() => {
-        this.regl.clear({
-          color: this.backgroundColor
+        this.regl.frame(() => {
+          this.regl.clear({
+            color: this.backgroundColor
+          });
+          this.camera(() => {
+            if (this.$drawGeometry.length > 0)
+              this.$drawGeometry.forEach(dc => dc());
+            if (this.$drawPreview.length > 0)
+              this.$drawPreview.forEach(dc => dc());
+            if (this.$drawEdges.length > 0) this.$drawEdges.forEach(dc => dc());
+          });
         });
-        this.camera(() => {
-          if (this.drawCSG) this.drawCSG();
-        });
-      });
       }
-    },
-    receiveChildCSG(childID, childGeometry) {
-      console.log("NiCad Viewer CSG", childGeometry);
-
-      // Quick hack to have the camera at a good distance from the model depending on its bounding box
-      // var distance = childGeometry.getBounds()[1]._y * 4;
-
-      this.createRegl();
-      this.createCSGDrawCall(childGeometry);
-    },
-    rotate(){
-      // console.log("rot");
-      // this.camera.rot();
+      console.log("REGL", this.regl);
     }
   },
   mounted() {
+    this.$drawGeometry = [];
+    this.$drawPreview = [];
+    this.$drawEdges = [];
+
     this.createRegl();
   },
   beforeDestroy() {
