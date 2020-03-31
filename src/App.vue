@@ -1,203 +1,115 @@
 <template>
   <div id="app">
-    <viewer ref="viewer">
-      <feature :node="tree" />
-    </viewer>
     <div class="interface">
-      <div class="left-sidebar">
-        <q-btn color="primary" class="full-width" @click="create('cube')">Cube</q-btn>
-        <q-btn color="primary" class="full-width" @click="create('sphere')">Sphere</q-btn>
-        <q-btn color="primary" class="full-width" @click="create('cylinder')">Cylinder</q-btn>
-        <q-btn color="primary" class="full-width" @click="create('union')">Union</q-btn>
-        <q-btn color="primary" class="full-width" @click="create('subtract')">Subtraction</q-btn>
-        <q-btn color="primary" class="full-width" @click="create('intersect')">Intersection</q-btn>
-        <q-btn color="primary" class="full-width" @click="deleteNode">Delete</q-btn>
-        <q-badge color="red">X: {{translateX}}</q-badge>
-        <q-slider v-model="translateX" :min="-10" :max="10" color="red" @change="setTranslate" />
-        <q-badge color="green">Y: {{translateY}}</q-badge>
-        <q-slider v-model="translateY" :min="-10" :max="10" color="green" @change="setTranslate" />
-        <q-badge color="blue">Z: {{translateZ}}</q-badge>
-        <q-slider v-model="translateZ" :min="-10" :max="10" color="blue" @change="setTranslate" />
+      <div v-show="currentCommand !== ''" class="left-sidebar">
+        <component
+          :is="currentCommand"
+          @feature:create="storeFeatureNode"
+          @feature:update="updateFeatureNode"
+          @feature:preview="previewFeature"
+          @op:execute="execute"
+          :selected="selectedFeatures"
+          @setCommand="setCommand"
+        />
       </div>
       <div class="right-sidebar">
         <q-tree
           ref="tree"
-          :nodes="tree.children"
+          :nodes="scene.children"
           label-key="name"
           node-key="key"
-          :tick-strategy="tickStrategy"
+          :tick-strategy="'strict'"
           :ticked.sync="ticked"
           :expanded.sync="expanded"
           default-expand-all
-          @update:ticked="handleSelected"
+          @update:ticked="handleTicked"
           no-connectors
         />
       </div>
-      <div class="bottom-toolbar"></div>
+      <div class="bottom-toolbar">
+        <Menu @setCommand="setCommand" :selected="selectedFeatures" />
+      </div>
+      <div class="view-cube">
+        <p>View Cube</p>
+      </div>
     </div>
+    <viewer ref="viewer" :scene="scene.children" :preview="preview"> </viewer>
   </div>
 </template>
 
 <script>
 import Viewer from "./components/Viewer.vue";
-import Feature from "./components/Feature.vue";
-import Tree from "./components/Tree.vue";
-import * as VueCSG from "vue-csg";
+import * as CommandUI from "./components/commands";
+import * as Menu from "./components/menu";
+import Node from "./js/feature";
 const debug = require("debug")("App");
-import { CAG, CSG } from "@jscad/csg";
-import { init } from "jscad-utils";
-var newCSG = init["default"](CSG);
-console.log("bla", CSG);
-// console.log("BLA", bla);
-// Pollute global space
-import { booleanOps } from "@jscad/scad-api";
-import { primitives3d } from "@jscad/scad-api";
-
-Object.assign(window, booleanOps);
-Object.assign(window, primitives3d);
-
-// import Worker from "./lib/worker.worker.js";
-// const worker = new Worker();
-// worker.postMessage([5,3]);
-// worker.onmessage = event => debug("Worker - OnMessage", event);
-// worker.terminate()
-// debug("After Worker")
-
-debug("INIT CSG", CSG);
-debug("INIT CAG", CAG);
 
 export default {
   name: "app",
   components: {
-    Feature,
-    Tree,
-    ...VueCSG,
-    Viewer
+    Viewer,
+    ...CommandUI,
+    ...Menu
   },
   data() {
     return {
-      arr: new Array(2),
-      foo: [],
-      test: 3,
-      newId: 7,
-      reglContext: undefined,
-      translateX: 0,
-      translateY: 0,
-      translateZ: 0,
-      tickStrategy: "strict",
-      ticked: [],
+      currentCommand: "",
       expanded: [],
-      tree: {
-        name: "union",
-        id: 0,
-        props: {},
-        children: [
-          {
-            name: "subtract",
-            key: "1",
-            props: {},
-            children: [
-              {
-                name: "cube",
-                key: "2",
-                props: {
-                  size: 3,
-                  center: true
-                }
-              },
-              {
-                name: "sphere",
-                key: "3",
-                props: {
-                  r: 2,
-                  center: true
-                }
-              }
-            ]
-          },
-          {
-            name: "intersect",
-            key: "6",
-            props: {},
-            children: [
-              {
-                name: "sphere",
-                key: "4",
-                props: {
-                  r: 1.3,
-                  center: true
-                }
-              },
-              {
-                name: "cube",
-                key: "5",
-                props: {
-                  size: 2.1,
-                  center: true
-                }
-              }
-            ]
-          }
-        ]
-      }
+      preview: [],
+      scene: new Node("Root"),
+      selectedFeatures: [],
+      ticked: [],
+      tempFeature: undefined
     };
   },
   methods: {
-    create(name) {
-      if (!this.selectedNode.children) {
-        this.selectedNode.children = [];
-      }
+    execute(csg) {
+      var primaryFeature = this.selectedFeatures[0];
+      this.$set(primaryFeature, "geometry", csg);
 
-      this.selectedNode.children.push({
-        name: name,
-        key: String(this.newId),
-        props: {},
-        children: []
+      this.selectedFeatures.slice(1).forEach(feature => {
+        primaryFeature.addChild(feature);
+        var index = this.scene.children.indexOf(feature);
+        if (index > -1) {
+          this.scene.children.splice(index, 1);
+          console.log("Removed", feature);
+        }
       });
 
-      this.newId += 1;
+      this.selectedFeatures.length = 0;
+      this.setCommand("");
     },
-    deleteNode() {
-      // TODO: deleteNode sets a delete flag prop on the selected node
-      // When the feature realizes it has that prop, it emits an event to it's parent feature
-      // Telling it to delete it
-      // I don't like this pattern, its outside the scope of what a feature should do imo
-      // But I'm not sure how else I can do it without direct access to the parent object
-      // this.selectedNode = undefined;
-      // this.$delete(this.selectedNode, "name");
-      // this.$delete(this.selectedNode, "props");
-      // this.$delete(this.selectedNode, "id");
-      // this.$delete(this.selectedNode, "children");
+    storeFeatureNode(feature) {
+      this.scene.addChild(feature);
+      this.setCommand("");
+      this.$set(this.preview, "length", 0);
     },
-    handleSelected(nodeKey) {
-      this.selectedNode = this.$refs.tree.getNodeByKey(nodeKey[0]);
-      console.log(this.selectedNode);
+    updateFeatureNode(csg) {
+      var primaryFeature = this.selectedFeatures[0];
+      this.$set(primaryFeature, "geometry", csg);
+      this.setCommand("");
     },
-    setTranslate() {
-      if (!this.selectedNode.props.translate) {
-        this.$set(this.selectedNode.props, "translate", []);
-        // this.$set(this.selectedNode.props.translate, 0, 0);
-        // this.$set(this.selectedNode.props.translate, 1, 0);
-        // this.$set(this.selectedNode.props.translate, 2, 0);
-        this.selectedNode.props.translate.push(0);
-        this.selectedNode.props.translate.push(0);
-        this.selectedNode.props.translate.push(0);
-      }
-      // this.$set(this.selectedNode.props.translate, 0, value);
-      this.$set(this.selectedNode.props.translate, [
-        this.translateX,
-        this.translateY,
-        this.translateX
-      ]);
+    previewFeature(feature) {
+      this.preview = [feature];
+    },
+    handleTicked() {
+      this.$nextTick(function() {
+        this.selectedFeatures = this.$refs.tree.getTickedNodes();
+      });
+    },
+    setCommand(command) {
+      this.currentCommand = command;
+      this.$set(this.preview, 0, undefined);
+      this.preview.length = 0;
     }
-  },
-  mounted() {
-    debug("CSG", CSG);
   }
 };
 </script>
 
 <style lang="scss">
+body {
+  overscroll-behavior: none;
+}
 #app {
   position: fixed;
   top: 0px;
@@ -205,25 +117,25 @@ export default {
   left: 0px;
   right: 0px;
 }
+.interface {
+  pointer-events: none;
+  position: absolute;
+  top: 0px;
+  bottom: 0px;
+  left: 0px;
+  right: 0px;
 
-@media only screen and (min-width: 1024px) {
-  .interface {
-    pointer-events: none;
-    position: absolute;
-    top: 0px;
-    bottom: 0px;
-    left: 0px;
-    right: 0px;
+  display: grid;
 
-    display: grid;
-    grid-template: auto 24px / 240px auto 240px;
+  @media only screen and (min-width: 1024px) {
+    grid-template-columns: 4fr 6fr 12fr 4fr;
+    grid-template-rows: 2fr 8fr 3fr 1.5fr;
 
     .left-sidebar {
       pointer-events: auto;
-      grid-column: 1 / 2;
-      grid-row: 1 / 2;
+      grid-row: 2 / span 1;
+      grid-column: 1 / span 1;
       border-radius: 1px;
-      // border: 1px solid rgba(255, 255, 255, 0.2);
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1), 0 1px 8px rgba(0, 0, 0, 0.2);
       background-blend-mode: exclusion;
       background-color: rgba(255, 255, 255, 0.6);
@@ -233,44 +145,77 @@ export default {
 
     .right-sidebar {
       pointer-events: auto;
-      grid-column: 3 / 4;
-      grid-row: 1 / 2;
-      // border-radius: 0em 0em 0em 0.5em;
-      // border: 1px solid rgba(255, 255, 255, 0.2);
+      grid-row: 1 / span 3;
+      grid-column: 4 / span 1;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1), 0 1px 8px rgba(0, 0, 0, 0.2);
       background-blend-mode: exclusion;
       background-color: rgba(255, 255, 255, 0.6);
-      // background: linear-gradient(
-      //   rgba(255, 255, 255, 0.1),
-      //   rgba(209, 209, 209, 1)
-      // );
       backdrop-filter: blur(20px) saturate(125%);
-
-      // Disabling the hover for now, it's annoying
-      // This probably means it isn't a good idea
-      // transform: translateX(75%);
-      // -webkit-transform: translateX(75%);
-      // transition: transform 0.2s ease;
       transition: ease 0.2s;
+      margin-left: 4em;
     }
 
     .bottom-toolbar {
       z-index: 2;
       pointer-events: auto;
-      grid-column: 1 / 4;
-      grid-row: 2 / 3;
-      // border: 1px solid rgba(255, 255, 255, 0.2);
-      // box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1), 0 1px 8px rgba(0, 0, 0, 0.2);
-      // background-blend-mode: exclusion;
+      grid-row: 4 / span 1;
+      grid-column: 2 / span 2;
+      border-top-left-radius: 1em;
+      border-top-right-radius: 1em;
       border: 1px black;
-      // background-color: rgba(209, 209, 209, 1);
-      background-color: #fe9801;
-      backdrop-filter: blur(10px);
+      background-color: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(20px) saturate(125%);
     }
 
-    .right-sidebar:hover {
-      // transform: translateX(0%);
-      // -webkit-transform: translateX(0%);
+    .view-cube {
+      grid-row: 3 / span 2;
+      grid-column: 1 / span 1;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2;
+      background-color: rgba(255, 165, 0, 0.5);
+    }
+  }
+
+  @media only screen and (max-width: 1024px) {
+    grid-template-columns: 1fr 6fr 1fr;
+    grid-template-rows: 5fr 4fr 1fr;
+    .left-sidebar {
+      // display: none;
+      grid-row: 2 / span 2;
+      grid-column: 2 / span 1;
+      z-index: 3;
+      pointer-events: auto;
+      border-radius: 1px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1), 0 1px 8px rgba(0, 0, 0, 0.2);
+      background-blend-mode: exclusion;
+      background-color: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(20px) saturate(125%);
+      transition: ease 0.2s;
+    }
+    .right-sidebar {
+      display: none;
+    }
+    .bottom-toolbar {
+      grid-row: 3 / span 1;
+      grid-column: 2 / span 1;
+      z-index: 2;
+      pointer-events: auto;
+      border-top-left-radius: 1em;
+      border-top-right-radius: 1em;
+      border: 1px black;
+      background-color: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(20px) saturate(125%);
+      overflow: scroll;
+    }
+    .view-cube {
+      display: none;
+    }
+    .view {
+      grid-row: 1 / span 3;
+      grid-column: 1 / span 3;
     }
   }
 }

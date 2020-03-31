@@ -15,7 +15,7 @@ var {
 function createCamera(regl, props_) {
   var canvas = regl._gl.canvas;
   var props = props_ || {}
-  var eye = [0, 0, 10];
+  var eye = [0, 0, 100];
   var rotationQuat = [0, 0, 0, 0];  
   var modelCenter = [0, 0, 0] //TODO: Models can have non 0,0,0 centers, this is hardcoded for now. Should be prop in future
 
@@ -36,10 +36,10 @@ function createCamera(regl, props_) {
     up: new Float32Array(props.up || [0, 1, 0]),
     right: new Float32Array([1, 0, 0]),
     fovy: props.fovy || Math.PI / 4.0,
-    near: typeof props.near !== 'undefined' ? props.near : 0.01,
+    near: typeof props.near !== 'undefined' ? props.near : -1000,
     far: typeof props.far !== 'undefined' ? props.far : 1000.0,
-    frustumWidth: 10,
-    frustumHeight: 10,
+    frustumWidth: 100,
+    frustumHeight: 100,
     rotationSpeed: typeof props.rotationSpeed !== 'undefined' ? props.rotationSpeed : 1,
     zoomSpeed: typeof props.zoomSpeed !== 'undefined' ? props.zoomSpeed : 1,
     renderOnDirty: typeof props.renderOnDirty !== undefined ? !!props.renderOnDirty : false
