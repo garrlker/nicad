@@ -94,8 +94,6 @@ export default {
 
 <style>
 .viewer {
-  min-height: 500px;
-  min-width: 500px;
   height: 100%;
   width: 100%;
   top: 0;

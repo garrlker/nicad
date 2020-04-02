@@ -86,7 +86,7 @@ function createCamera(regl, props_) {
       var dy = (centerY - y) / getHeight();
 
       panCamera(dx, dy);
-      zoomCamera(scrollDelta);
+      zoomCamera(scrollDelta > 0 ? 1 / zoomScale : zoomScale);
       panCamera(-dx, -dy);
     },
     true
@@ -94,58 +94,105 @@ function createCamera(regl, props_) {
 
   /* Touch Handling */
   var mc = new Hammer(canvas, {});
-  mc.get("pan").set({ direction: Hammer.DIRECTION_ALL, pointers: 2 });
-
-  mc.on("panstart", function(ev) {
-    if (ev.pointerType === "mouse") {
-      return;
-    }
-
-    var dx = (ev.deltaX - touchPrevX) / getWidth();
-    var dy = (ev.deltaY - touchPrevY) / getHeight();
-
-    touchPrevX = ev.deltaX;
-    touchPrevY = ev.deltaY;
-    console.log("panstart", touchPrevX, touchPrevY);
-  });
-
-  mc.on("panleft panright panup pandown", function(ev) {
-    console.log(ev);
-    if (ev.pointerType === "mouse") {
-      return;
-    }
-
-    var dx = (ev.deltaX - touchPrevX) / getWidth();
-    var dy = (ev.deltaY - touchPrevY) / getHeight();
-
-    if (ev.pointers.length === 1) {
-      rotateCamera(dx, dy);
-    } else if (ev.pointers.length === 2) {
-      panCamera(dx, dy);
-    }
-    // console.log("Touch Deltas", dx, dy);
-    touchPrevX = ev.deltaX;
-    touchPrevY = ev.deltaY;
-    console.log("pan", touchPrevX, touchPrevY);
-  });
+  // mc.get("pan").set({ direction: Hammer.DIRECTION_ALL, pointers: 1, threshold: 32 });
 
   var prevScale;
+  var prevPanX;
+  var prevPanY;
+  var prevAngle;
+  var pan = new Hammer.Pan({
+    direction: Hammer.DIRECTION_ALL,
+    pointers: 1,
+    threshold: 32
+  });
   var pinch = new Hammer.Pinch();
   var rotate = new Hammer.Rotate();
 
   // we want to detect both the same time
+
   pinch.recognizeWith(rotate);
-  mc.add([pinch, rotate]);
-  mc.on("pinch rotate", function(ev) {
-    if(prevScale){
-      zoomCamera(1 + (ev.scale - prevScale));
+  mc.add([pan, pinch, rotate]);
+
+  mc.on("panstart", function(ev) {
+    // console.log(ev.type)
+    if (ev.pointerType === "mouse") {
+      return;
     }
+
+    var dx = (ev.deltaX - touchPrevX) / getWidth();
+    var dy = (ev.deltaY - touchPrevY) / getHeight();
+
+    touchPrevX = ev.deltaX;
+    touchPrevY = ev.deltaY;
+    // console.log("panstart", touchPrevX, touchPrevY);
+  });
+
+  mc.on("panleft panright panup pandown", function(ev) {
+    // console.log(ev.type)
+    // console.log(ev);
+    if (ev.pointerType === "mouse" || ev.type === "panend") {
+      // // console.log(ev.type);
+      return;
+    }
+
+    var dx = (ev.deltaX - touchPrevX) / getWidth();
+    var dy = (ev.deltaY - touchPrevY) / getHeight();
+
+    if (touchPrevX && touchPrevY) {
+      rotateCamera(dx, dy);
+      // console.log("ROTATE");
+      // console.log("pan", touchPrevX, touchPrevY);
+    }
+    
+    touchPrevX = ev.deltaX;
+    touchPrevY = ev.deltaY;
+  });
+
+  mc.on("panend", function(ev) {ev.pointers.length === 1
+    // console.log(ev.type)
+    touchPrevX = undefined;
+    touchPrevY = undefined;
+  });
+
+  mc.on("pinchstart", function(ev) {
+    // console.log(ev.type)
     prevScale = ev.scale;
-    console.log("PINCH ROTATE", ev);
+  });
+
+  mc.on("pinchmove rotatemove", ev => {
+    // console.log(ev.type)
+    if(prevPanX && prevPanY){
+      panCamera((ev.deltaX - prevPanX) / getWidth(), (ev.deltaY - prevPanY) / getHeight());
+    }
+    prevPanX = ev.deltaX;
+    prevPanY = ev.deltaY;
+  });
+
+  mc.on("pinch rotate", function(ev) {
+    // console.log(ev.angle)
+    if (prevScale) {
+      zoomCamera(1 + (prevScale - ev.scale));
+    }
+
+    if(prevAngle){
+      console.log(ev.rotation)
+      rotateCamera(0, 0, (prevAngle - ev.rotation) / 360);
+    }
+    prevAngle = ev.rotation
+    prevScale = ev.scale;
+  });
+
+  mc.on("pinchend rotateend", function(ev) {
+    // console.log(ev.type)
+    prevAngle = undefined;
+    prevScale = undefined;
+    prevPanX = undefined;
+    prevPanY = undefined;
   });
 
   /* Camera Functions */
-  function rotateCamera(xDelta, yDelta) {
+  function rotateCamera(xDelta, yDelta, zDelta) {
+    console.log(xDelta, yDelta, zDelta);
     let difference = [0, 0, 0];
     vec3.sub(difference, cameraState.target, modelCenter);
 
@@ -160,6 +207,17 @@ function createCamera(regl, props_) {
       setAxisAngle(rotationQuat, cameraState.right, -yDelta * 5);
       vec3.transformQuat(cameraState.eye, cameraState.eye, rotationQuat);
       vec3.transformQuat(cameraState.up, cameraState.up, rotationQuat);
+      vec3.transformQuat(difference, difference, rotationQuat);
+    }
+
+    if (zDelta && zDelta !== 0) {
+      let normalEye = [0,0,0];
+      vec3.normalize(normalEye, cameraState.eye);
+
+      setAxisAngle(rotationQuat, normalEye, -zDelta * 5);
+      vec3.transformQuat(cameraState.eye, cameraState.eye, rotationQuat);
+      vec3.transformQuat(cameraState.up, cameraState.up, rotationQuat);
+      vec3.transformQuat(cameraState.right, cameraState.right, rotationQuat);
       vec3.transformQuat(difference, difference, rotationQuat);
     }
 
@@ -191,20 +249,11 @@ function createCamera(regl, props_) {
 
   function zoomCamera(zoomScale) {
     // Perspective
-    // if (yDelta < 0) {
-    //   vec3.scale(cameraState.eye, cameraState.eye, zoomScale);
-    // } else {
-    //   vec3.scale(cameraState.eye, cameraState.eye, 1 / zoomScale);
-    // }
+    // vec3.scale(cameraState.eye, cameraState.eye, zoomScale);
 
     // Orthographic
-    // if (yDelta < 0) {
-      cameraState.frustumWidth *= zoomScale;
-      cameraState.frustumHeight *= zoomScale;
-    // } else {
-      // cameraState.frustumWidth *= 1 / zoomScale;
-      // cameraState.frustumHeight *= 1 / zoomScale;
-    // }
+    cameraState.frustumWidth *= zoomScale;
+    cameraState.frustumHeight *= zoomScale;
   }
 
   /*        perspective(cameraState.projection,
