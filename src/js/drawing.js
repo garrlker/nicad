@@ -46,7 +46,7 @@ function createEdge(regl, csg) {
     attributes: {
       position: edges
     },
-    lineWidth: 6
+    lineWidth: 1
   });
 }
 function createPreview(regl, csg) {
