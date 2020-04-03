@@ -18,8 +18,6 @@ function createCamera(regl, props_) {
 
   // Internal
   var prevX, prevY;
-  var touchPrevX = 0,
-    touchPrevY = 0;
   var right = new Float32Array(3);
   var panUp = new Float32Array(3);
 
@@ -46,6 +44,7 @@ function createCamera(regl, props_) {
   cameraState.frustumWidth *= aspect;
   cameraState.frustumHeight = cameraState.frustumWidth * (1 / aspect);
 
+  // TODO: Regl does pass width and height as context variables, should use those instead of our own functions
   function getWidth() {
     return canvas ? canvas.offsetWidth : window.innerWidth;
   }
@@ -54,7 +53,7 @@ function createCamera(regl, props_) {
     return canvas ? canvas.offsetHeight : window.innerHeight;
   }
 
-  /* Mouse Handling */
+  /* Mouse Controls */
   mouseChange(canvas, function(buttons, x, y) {
     if (buttons & 1) {
       var dx = (x - prevX) / getWidth();
@@ -92,98 +91,84 @@ function createCamera(regl, props_) {
     true
   );
 
-  /* Touch Handling */
+  /* Touch Controls */
   var mc = new Hammer(canvas, {});
-  // mc.get("pan").set({ direction: Hammer.DIRECTION_ALL, pointers: 1, threshold: 32 });
 
-  var prevScale;
-  var prevPanX;
-  var prevPanY;
-  var prevAngle;
+  // Compute delta values with these
+  var touchPrevX, touchPrevY, prevScale, prevPanX, prevPanY, prevAngle;
+
+  // Recognizers
   var pan = new Hammer.Pan({
     direction: Hammer.DIRECTION_ALL,
     pointers: 1,
-    threshold: 32
+    threshold: 24
   });
   var pinch = new Hammer.Pinch();
   var rotate = new Hammer.Rotate();
 
   // we want to detect both the same time
-
   pinch.recognizeWith(rotate);
+
+  // Register Recognizers
   mc.add([pan, pinch, rotate]);
 
-  mc.on("panstart", function(ev) {
-    // console.log(ev.type)
+  mc.on("panleft panright panup pandown", function(ev) {
+    // A desktop mouse will still fire the pan handler in hammerjs, we don't want that
     if (ev.pointerType === "mouse") {
       return;
     }
 
-    var dx = (ev.deltaX - touchPrevX) / getWidth();
-    var dy = (ev.deltaY - touchPrevY) / getHeight();
-
-    touchPrevX = ev.deltaX;
-    touchPrevY = ev.deltaY;
-    // console.log("panstart", touchPrevX, touchPrevY);
-  });
-
-  mc.on("panleft panright panup pandown", function(ev) {
-    // console.log(ev.type)
-    // console.log(ev);
-    if (ev.pointerType === "mouse" || ev.type === "panend") {
-      // // console.log(ev.type);
-      return;
-    }
-
-    var dx = (ev.deltaX - touchPrevX) / getWidth();
-    var dy = (ev.deltaY - touchPrevY) / getHeight();
-
     if (touchPrevX && touchPrevY) {
+      var dx = (ev.deltaX - touchPrevX) / getWidth();
+      var dy = (ev.deltaY - touchPrevY) / getHeight();
+
+      // X and Y Axis camera rotation
       rotateCamera(dx, dy);
-      // console.log("ROTATE");
-      // console.log("pan", touchPrevX, touchPrevY);
     }
-    
+
     touchPrevX = ev.deltaX;
     touchPrevY = ev.deltaY;
   });
 
-  mc.on("panend", function(ev) {ev.pointers.length === 1
-    // console.log(ev.type)
+  mc.on("panend", function(ev) {
+    ev.pointers.length === 1;
     touchPrevX = undefined;
     touchPrevY = undefined;
   });
 
   mc.on("pinchstart", function(ev) {
-    // console.log(ev.type)
     prevScale = ev.scale;
   });
 
+  // Pan the Camera
   mc.on("pinchmove rotatemove", ev => {
-    // console.log(ev.type)
-    if(prevPanX && prevPanY){
-      panCamera((ev.deltaX - prevPanX) / getWidth(), (ev.deltaY - prevPanY) / getHeight());
+    if (prevPanX && prevPanY) {
+      panCamera(
+        (ev.deltaX - prevPanX) / getWidth(),
+        (ev.deltaY - prevPanY) / getHeight()
+      );
     }
     prevPanX = ev.deltaX;
     prevPanY = ev.deltaY;
   });
 
   mc.on("pinch rotate", function(ev) {
-    // console.log(ev.angle)
+    // Pinch Zoom
     if (prevScale) {
       zoomCamera(1 + (prevScale - ev.scale));
     }
 
-    if(prevAngle){
-      console.log(ev.rotation)
+    // Z-Axis Roll
+    // TODO: There is a noticable "jump" when the angle crosses a multiple of 360
+    if (prevAngle) {
       rotateCamera(0, 0, (prevAngle - ev.rotation) / 360);
     }
-    prevAngle = ev.rotation
+    prevAngle = ev.rotation;
     prevScale = ev.scale;
   });
 
+  // Clear Pan/Zoom/Roll variables
   mc.on("pinchend rotateend", function(ev) {
-    // console.log(ev.type)
     prevAngle = undefined;
     prevScale = undefined;
     prevPanX = undefined;
@@ -192,7 +177,6 @@ function createCamera(regl, props_) {
 
   /* Camera Functions */
   function rotateCamera(xDelta, yDelta, zDelta) {
-    console.log(xDelta, yDelta, zDelta);
     let difference = [0, 0, 0];
     vec3.sub(difference, cameraState.target, modelCenter);
 
@@ -211,7 +195,7 @@ function createCamera(regl, props_) {
     }
 
     if (zDelta && zDelta !== 0) {
-      let normalEye = [0,0,0];
+      let normalEye = [0, 0, 0];
       vec3.normalize(normalEye, cameraState.eye);
 
       setAxisAngle(rotationQuat, normalEye, -zDelta * 5);
@@ -225,12 +209,18 @@ function createCamera(regl, props_) {
     vec3.copy(cameraState.target, difference);
   }
 
+  /* 
+   *  TODO: This math is slightly wrong atleast on the screen X axis, my screen Y axis is perfect,
+   *       but it is probably slightly wrong too
+   */
   function panCamera(xDelta, yDelta) {
     if (xDelta !== 0) {
       let normalEye = new Float32Array(3);
       vec3.normalize(normalEye, cameraState.eye);
+
       vec3.cross(right, normalEye, cameraState.up);
       vec3.scale(right, right, xDelta * cameraState.frustumWidth);
+
       vec3.add(cameraState.eye, cameraState.eye, right);
       vec3.add(cameraState.target, cameraState.target, right);
     }
@@ -255,13 +245,6 @@ function createCamera(regl, props_) {
     cameraState.frustumWidth *= zoomScale;
     cameraState.frustumHeight *= zoomScale;
   }
-
-  /*        perspective(cameraState.projection,
-          0.785,
-          window.innerWidth / window.innerHeight,
-          cameraState.near,
-          cameraState.far)
-*/
 
   var injectContext = regl({
     context: Object.assign({}, cameraState, {
