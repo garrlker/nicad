@@ -27,10 +27,7 @@
         />
       </div>
       <div class="bottom-toolbar">
-        <Menu
-          @setCommand="setCommand"
-          :selected="selectedFeatures"
-        />
+        <Menu @setCommand="setCommand" :selected="selectedFeatures" />
       </div>
       <div class="view-cube">
         <p>View Cube</p>
@@ -110,6 +107,9 @@ export default {
 </script>
 
 <style lang="scss">
+body {
+  overscroll-behavior: none;
+}
 #app {
   position: fixed;
   top: 0px;
