@@ -22,7 +22,7 @@
     "gl-matrix": "^3.2.1",
     "mouse-change": "^1.4.0",
     "mouse-wheel": "^1.2.0",
-    "prismjs": "^1.19.0",
+    "prismjs": "^1.21.0",
     "quasar": "^1.9.12",
     "regl": "^1.4.2",
     "regl-camera": "^2.1.1",
