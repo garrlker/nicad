@@ -1,4 +1,4 @@
-# hello
+# nicad 
 
 ## Project setup
 ```
